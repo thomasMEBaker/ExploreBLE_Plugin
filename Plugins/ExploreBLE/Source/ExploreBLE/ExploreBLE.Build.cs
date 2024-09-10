@@ -49,5 +49,11 @@ public class ExploreBLE : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
-	}
+
+			if (Target.Platform == UnrealTargetPlatform.Android)
+			{
+				PrivateDependencyModuleNames.AddRange(new string[] { "Launch" });
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", ModuleDirectory + "/EXPLORE_BLE.xml");
+			}
+    }
 }

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- init section is always evaluated once per architecture -->
+	<trace enable="true"/>
+	<init>
+		<log text="Explore BLE Plugin Init"/>
+	</init>
+
+
+	<buildGradleAdditions>
+		<insert>
+			<![CDATA[
+    android
+    {
+    compileOptions {
+            sourceCompatibility JavaVersion.VERSION_1_8
+            targetCompatibility JavaVersion.VERSION_1_8
+        }			
+    packagingOptions {
+        pickFirst "META-INF/INDEX.LIST"
+    }	
+}
+
+repositories {
+	flatDir {
+		dirs ']]>
+		</insert>
+		<insertValue value="$S(BuildDir)/aar"></insertValue>
+		<insert>
+			<![CDATA['		
+	}
+}
+
+dependencies {
+	 implementation fileTree(dir: ']]>
+		</insert>
+		<insertValue value="$S(BuildDir)/aar"></insertValue>
+
+		<insert>
+			<![CDATA[', include: ['*.jar','*.aar'])
+        implementation 'com.google.zxing:core:3.5.2'
+}
+		]]>
+		</insert>
+
+	</buildGradleAdditions>
+
+
+	<androidManifestUpdates>
+		<addAttribute tag="application" name="android:usesCleartextTraffic" value="true"/>
+
+		<!--
+      <activity android:name="com.isaratech.androidapi.AndroidAPITemplateActivity"
+            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+            android:label="@string/app_name" />
+
+    </addElements>
+		-->
+
+	</androidManifestUpdates>
+
+
+	<!-- optional additions to proguard -->
+	<proguardAdditions>
+		<insert>
+			<![CDATA[
+      -keepattributes Signature
+      -dontskipnonpubliclibraryclassmembers
+
+     -keepclassmembers class com.epicgames.ue4.GameActivity {
+            public <methods>;
+            public <fields>;
+     }
+    ]]>
+		</insert>
+	</proguardAdditions>
+
+	<resourceCopies>
+		<!-- Copy the generated resource file to be packaged -->
+
+
+	</resourceCopies>
+
+	<AARImports>
+	</AARImports>
+
+	<!-- optional additions to the GameActivity imports in GameActivity.java -->
+	<gameActivityImportAdditions>
+		<insert>
+			
+		
+		
+
+
+		</insert>
+	</gameActivityImportAdditions>
+
+
+	<!-- optional additions to the GameActivity class in GameActivity.java -->
+	<gameActivityClassAdditions>
+		<insert>
+			<![CDATA[
+	
+        
+		
+		
+		
+		
+		]]>
+		</insert>
+	</gameActivityClassAdditions>
+
+	<!-- optional additions to GameActivity ReadMETADATA metadata reading in GameActivity.java -->
+	<gameActivityReadMetadataAdditions>
+		<insert>
+
+		</insert>
+	</gameActivityReadMetadataAdditions>
+
+	<!-- optional additions to GameActivity onCreate in GameActivity.java -->
+	<gameActivityOnCreateAdditions>
+		<insert>
+			<![CDATA[
+		]]>
+		</insert>
+	</gameActivityOnCreateAdditions>
+
+	<!-- optional additions to GameActivity onDestroy in GameActivity.java -->
+	<gameActivityOnDestroyAdditions>
+		<insert>
+
+		</insert>
+	</gameActivityOnDestroyAdditions>
+
+
+	<!-- optional additions to GameActivity onStart in GameActivity.java -->
+	<gameActivityOnStartAdditions>
+		<insert>
+
+		</insert>
+	</gameActivityOnStartAdditions>
+
+	<!-- optional additions to GameActivity onStop in GameActivity.java -->
+	<gameActivityOnStopAdditions>
+		<insert>
+
+		</insert>
+	</gameActivityOnStopAdditions>
+
+
+	<!-- optional additions to GameActivity onPause in GameActivity.java	-->
+	<gameActivityOnPauseAdditions>
+		<insert>
+			<![CDATA[
+    ]]>
+		</insert>
+	</gameActivityOnPauseAdditions>
+
+
+	<!-- optional additions to GameActivity onResume in GameActivity.java	-->
+	<gameActivityOnResumeAdditions>
+		<insert>
+		</insert>
+	</gameActivityOnResumeAdditions>
+
+
+	<!-- optional additions to GameActivity onActivityResult in GameActivity.java -->
+	<gameActivityOnActivityResultAdditions>
+		<insert>
+		</insert>
+	</gameActivityOnActivityResultAdditions>
+
+
+	<!-- optional libraries to load in GameActivity.java before libUE4.so -->
+	<soLoadLibrary>
+		<!-- need this if plugin enabled and supported architecture, even if not packaged for GearVR -->
+	</soLoadLibrary>
+</root>
