@@ -25,8 +25,29 @@
 UCLASS()
 class UExploreBLEBPLibrary : public UBlueprintFunctionLibrary
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Execute Sample function", Keywords = "ExploreBLE sample test testing"), Category = "ExploreBLETesting")
-	static float ExploreBLESampleFunction(float Param);
+public:
+
+	UExploreBLEBPLibrary(const FObjectInitializer& ObjectInitializer);
+	~UExploreBLEBPLibrary();
+
+	UFUNCTION(BlueprintCallable)
+	static void ExploreBLE_ShowToast(const FString& Content);
+
+
+	UFUNCTION(BlueprintCallable)
+	static FString ExploreBLE_getBleDeviceAddress();
+
+	UFUNCTION(BlueprintCallable)
+	static bool ExploreBLE_ConnectBLE();
+
+	UFUNCTION(BlueprintCallable)
+	static bool ExploreBLE_getBleConnectionStatus();
+
+	UPROPERTY(VisibleAnywhere)
+	bool bleConnected;
+
+	UPROPERTY(VisibleAnywhere)
+	FString bleDeviceAddress;
 };

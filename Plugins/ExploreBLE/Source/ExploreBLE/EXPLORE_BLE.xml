@@ -88,11 +88,21 @@ dependencies {
 	<!-- optional additions to the GameActivity imports in GameActivity.java -->
 	<gameActivityImportAdditions>
 		<insert>
-			
+			import android.widget.Toast;
+			import android.bluetooth.BluetoothAdapter;
+			import android.bluetooth.BluetoothDevice;
+			import android.bluetooth.BluetoothGatt;
+			import android.bluetooth.BluetoothGattCallback;
+			import android.bluetooth.BluetoothGattCharacteristic;
+			import android.bluetooth.BluetoothGattDescriptor;
+			import android.bluetooth.BluetoothGattService;
+			import android.bluetooth.BluetoothManager;
+			import android.bluetooth.BluetoothProfile;
+			import android.content.Context;
+			import java.util.ArrayList;
+			import java.util.List;
+			import java.util.UUID;
 		
-		
-
-
 		</insert>
 	</gameActivityImportAdditions>
 
@@ -101,12 +111,246 @@ dependencies {
 	<gameActivityClassAdditions>
 		<insert>
 			<![CDATA[
+			
+			private native void nativeBLEConnected(boolean connected);
+			private native void nativeBLEReturnDeviceAddress(String device_address);
+		
+			private BLEManager bleManager;
+			String deviceAddress;
+			
+			public void Java_ShowToast(final String toast) {
+			runOnUiThread(new Runnable() {
+				public void run() {
+					CharSequence cs = toast;
+					Toast.makeText(getApplicationContext(), cs, Toast.LENGTH_LONG).show();
+					}
+				});
+			}
+			
+			public class BLEManager {
+			    private BluetoothAdapter bluetoothAdapter;
+				private BluetoothGatt bluetoothGatt;
+				private BluetoothGattService service;
+
+				private List<BluetoothGattCharacteristic> characteristics;
+				private Context context;
+				private Activity activity;
+				private TextView [] textBoxes;
+
+				String str = null;
+				int dataValue = 0;
+				
+				private UUID MOTUS_EXPLORE_SERVICE_UUID = UUID.fromString("9c9d4aa7-8050-4c8a-bc67-146a66d0443e");
+				private UUID INTENSITY_UUID = UUID.fromString("9c9d4aa7-8051-4c8a-bc67-146a66d0443e");
+				private UUID ENDURANCE_UUID = UUID.fromString("9c9d4aa7-8052-4c8a-bc67-146a66d0443e");
+				private UUID LEFT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8053-4c8a-bc67-146a66d0443e");
+				private UUID RIGHT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8054-4c8a-bc67-146a66d0443e");
+				private UUID MAX_EXTENSION_LEFT_UUID = UUID.fromString("9c9d4aa7-8055-4c8a-bc67-146a66d0443e");
+				private UUID MAX_EXTENSION_RIGHT_UUID = UUID.fromString("9c9d4aa7-8056-4c8a-bc67-146a66d0443e");
+				private UUID CCC_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
+				
+				List<BluetoothGattCharacteristic> chars = new ArrayList<>();
+
+				public BLEManager(Context context, Activity act) {
+					this.context = context;
+					this.activity = act;
+				
+					BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
+					if (bluetoothManager != null) {
+						bluetoothAdapter = bluetoothManager.getAdapter();
+						}
+					}
+					
+					public boolean connectToDevice(String deviceAddress) {
+						BluetoothAdapter myAdapter;
+						BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
+						bluetoothGatt = device.connectGatt(context, true, gattCallback);
+						return true;
+					}
+					
+					void readIntensity() {
+						if (service != null) {
+							for (BluetoothGattCharacteristic characteristic : characteristics) {
+								UUID characteristicUuid = characteristic.getUuid();
+								if (characteristic != null && characteristicUuid.equals(INTENSITY_UUID)) {
+									System.out.println("INTENSITY_UUID");
+									bluetoothGatt.readCharacteristic(characteristic);
+								}
+							}
+						}
+					}
+					
+				  void readEndurance() {
+						if (service != null) {
+							for (BluetoothGattCharacteristic characteristic : characteristics) {
+								UUID characteristicUuid = characteristic.getUuid();
+								if (characteristic != null && characteristicUuid.equals(ENDURANCE_UUID)) {
+									System.out.println("ENDURANCE_UUID");
+									bluetoothGatt.readCharacteristic(characteristic);
+								}
+							}
+						}
+					}
+					
+					void readLeftBalance() {
+						if (service != null) {
+							for (BluetoothGattCharacteristic characteristic : characteristics) {
+								UUID characteristicUuid = characteristic.getUuid();
+								if (characteristic != null && characteristicUuid.equals(LEFT_BALANCE_UUID)) {
+									System.out.println("LEFT_RIGHT_UUID");
+									bluetoothGatt.readCharacteristic(characteristic);
+								}
+							}
+						}
+					}
+					
+					void readRightBalance() {
+						if (service != null) {
+							for (BluetoothGattCharacteristic characteristic : characteristics) {
+								UUID characteristicUuid = characteristic.getUuid();
+								if (characteristic != null && characteristicUuid.equals(RIGHT_BALANCE_UUID)) {
+									System.out.println("LEFT_RIGHT_UUID");
+									bluetoothGatt.readCharacteristic(characteristic);
+								}
+							}
+						}
+					}
+					
+					void readMaxLeft() {
+						if (service != null) {
+							for (BluetoothGattCharacteristic characteristic : characteristics) {
+								UUID characteristicUuid = characteristic.getUuid();
+								if (characteristic != null && characteristicUuid.equals(MAX_EXTENSION_LEFT_UUID)) {
+									System.out.println("LEFT_MAX_UUID");
+									bluetoothGatt.readCharacteristic(characteristic);
+								}
+							}
+						}
+					}
+					
+					void readMaxRight() {
+						if (service != null) {
+							for (BluetoothGattCharacteristic characteristic : characteristics) {
+								UUID characteristicUuid = characteristic.getUuid();
+								if (characteristic != null && characteristicUuid.equals(MAX_EXTENSION_RIGHT_UUID)) {
+									System.out.println("RIGHT_MAX_UUID");
+									bluetoothGatt.readCharacteristic(characteristic);
+								}
+							}
+						}
+					}
+					private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+					@Override
+					public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+						super.onConnectionStateChange(gatt, status, newState);
+						 if (newState == BluetoothProfile.STATE_CONNECTED) {
+							gatt.discoverServices();
+							System.out.println("Connected to GATT server");
+							Java_ShowToast("Connected to GATT server");
+							nativeBLEConnected(true);
+							nativeBLEReturnDeviceAddress(deviceAddress);
+
+						}
+						else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+							System.out.println("Disconnected from GATT server");
+							Java_ShowToast("Disconnected from GATT server");
+							nativeBLEConnected(false);
+							nativeBLEReturnDeviceAddress("-");
+						}
+					}
+					
+					
+					@Override
+					public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+						super.onCharacteristicChanged(gatt, characteristic);
+						if (characteristic.getUuid().equals(INTENSITY_UUID)) {
+							byte[] charactertisicVal = characteristic.getValue();
+							int notificationValue = charactertisicVal[0] & 0xFF;
+							System.out.println("INTENSITY UPDATED " + notificationValue);
+						}
+						else if (characteristic.getUuid().equals(ENDURANCE_UUID)) {
+							byte[] charactertisicVal = characteristic.getValue();
+							int notificationValue = charactertisicVal[0] & 0xFF;
+							System.out.println("ENDURANCE UPDATED " + notificationValue);
+						}
+						else if (characteristic.getUuid().equals(LEFT_BALANCE_UUID)) {
+						    byte[] charactertisicVal = characteristic.getValue();
+							int notificationValue = charactertisicVal[0] & 0xFF;
+							System.out.println("LEFT BALANCE UPDATED " + notificationValue);
+						}
+						else if (characteristic.getUuid().equals(RIGHT_BALANCE_UUID)) {
+							byte[] charactertisicVal = characteristic.getValue();
+							int notificationValue = charactertisicVal[0] & 0xFF;
+							System.out.println("RIGHT BALANCE UPDATED " + notificationValue);
+						}
+						else if (characteristic.getUuid().equals(MAX_EXTENSION_LEFT_UUID)) {
+							byte[] charactertisicVal = characteristic.getValue();
+							int notificationValue = charactertisicVal[0] & 0xFF;
+							System.out.println("MAX LEFT UPDATED " + notificationValue);
+						}
+						else if (characteristic.getUuid().equals(MAX_EXTENSION_RIGHT_UUID)) {
+							byte[] charactertisicVal = characteristic.getValue();
+							int notificationValue = charactertisicVal[0] & 0xFF;
+							System.out.println("MAX RIGHT UPDATED " + notificationValue);
+						}
+						}
+					};		
+				}
+		
+		public static boolean isConnected(BluetoothDevice device) {
+			try {
+				Method m = device.getClass().getMethod("isConnected", (Class[]) null);
+				boolean connected = (boolean) m.invoke(device, (Object[]) null);
+				return connected;
+			} catch (Exception e) {
+				throw new IllegalStateException(e);
+			}
+		}
+		
 	
-        
-		
-		
-		
-		
+		    boolean Java_ConnectToBLEService() {
+				BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+				Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+
+				if (bluetoothAdapter == null) {
+					System.out.println("BLE: bluetoothAdapter == null");
+					return false;
+				} else if (!bluetoothAdapter.isEnabled()) {
+					System.out.println("BLE: !bluetoothAdapter.isEnabled()");
+					return false;
+				}
+				else {
+					for (BluetoothDevice device : pairedDevices) {
+						String deviceName = device.getName();
+						if (deviceName.startsWith("MotusVR") && isConnected(device)) {
+							deviceAddress = device.getAddress();
+							System.out.println("BLE: Motus Device Connected with address: " + deviceAddress);
+							Java_ShowToast("BLE: Motus Device Connected with address: " + deviceAddress);
+							Activity activity = (Activity) this;
+							bleManager = new BLEManager(this, activity);
+							if(bleManager.connectToDevice(deviceAddress)){
+								System.out.println("BLE: Motus BLE Connected");
+								Java_ShowToast("BLE: Motus BLE Connected");
+								return true;
+							}else{
+								System.out.println("BLE: Motus BLE NOT!");
+								//Java_ShowToast("BLE: Motus BLE NOT!");
+								return false;
+								}
+							}
+						else{
+							System.out.println("BLE: Motus BLE PAIRED BUT NOT CONNECTED!");
+							//Java_ShowToast("BLE: Motus BLE PAIRED BUT NOT CONNECTED!");
+							return false;
+						}
+					}
+				}
+				return false;
+			}
+			
+
+
+
 		]]>
 		</insert>
 	</gameActivityClassAdditions>
