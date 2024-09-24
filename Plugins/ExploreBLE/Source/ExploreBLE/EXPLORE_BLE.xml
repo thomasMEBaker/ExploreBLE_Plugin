@@ -260,6 +260,49 @@ dependencies {
 					}
 					
 					
+					
+						@Override
+						public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+							super.onServicesDiscovered(gatt, status);
+
+							if (status == BluetoothGatt.GATT_SUCCESS) {
+								service = gatt.getService(MOTUS_EXPLORE_SERVICE_UUID);
+								if (service != null) {
+									characteristics = service.getCharacteristics();
+									for (BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
+										chars.add(characteristic);
+									}
+									System.out.println("CHARACTERISTIC SIZE - " + chars.size());
+									subscribeToCharacteristics(gatt);
+								}
+							}
+							Java_ShowToast("onServicesDiscovered");
+						}
+					
+					  private void subscribeToCharacteristics(BluetoothGatt gatt) {
+							if(chars.size() == 0) return;
+							BluetoothGattCharacteristic characteristic = chars.get(0);
+							gatt.setCharacteristicNotification(characteristic, true);
+							BluetoothGattDescriptor descriptor = characteristic.getDescriptor(CCC_DESCRIPTOR_UUID);
+							if(descriptor != null) {
+								System.out.println(characteristic.getUuid().toString() + " descriptor!=NULL");
+								descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+								gatt.writeDescriptor(descriptor);
+							}
+							else{
+								System.out.println(characteristic.getUuid().toString() + " descriptor==NULL");
+							}
+						}
+						
+						@Override
+						public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+							//Log.i("DESCRIPTOR", "WROTE DESCRIPTOR FOR CHARACTERISTIC");
+							super.onDescriptorWrite(gatt, descriptor, status);
+							chars.remove(0);
+							subscribeToCharacteristics(gatt);
+						}
+
+				
 					@Override
 					public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
 						super.onCharacteristicChanged(gatt, characteristic);
@@ -267,31 +310,37 @@ dependencies {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("INTENSITY UPDATED " + notificationValue);
+							Java_ShowToast("INTENSITY UPDATED " + notificationValue);
 						}
 						else if (characteristic.getUuid().equals(ENDURANCE_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("ENDURANCE UPDATED " + notificationValue);
+							Java_ShowToast("ENDURANCE UPDATED " + notificationValue);
 						}
 						else if (characteristic.getUuid().equals(LEFT_BALANCE_UUID)) {
 						    byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("LEFT BALANCE UPDATED " + notificationValue);
+							Java_ShowToast("LEFT BALANCE UPDATED " + notificationValue);
 						}
 						else if (characteristic.getUuid().equals(RIGHT_BALANCE_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("RIGHT BALANCE UPDATED " + notificationValue);
+							Java_ShowToast("RIGHT BALANCE UPDATED " + notificationValue);
 						}
 						else if (characteristic.getUuid().equals(MAX_EXTENSION_LEFT_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("MAX LEFT UPDATED " + notificationValue);
+							Java_ShowToast("MAX LEFT UPDATED " + notificationValue);
 						}
 						else if (characteristic.getUuid().equals(MAX_EXTENSION_RIGHT_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("MAX RIGHT UPDATED " + notificationValue);
+							Java_ShowToast("MAX RIGHT UPDATED " + notificationValue);
 						}
 						}
 					};		
