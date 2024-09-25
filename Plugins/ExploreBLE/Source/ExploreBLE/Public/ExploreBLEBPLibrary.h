@@ -45,9 +45,45 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static bool ExploreBLE_getBleConnectionStatus();
 
+	UFUNCTION(BlueprintCallable)
+	static int ExploreBLE_getBLE_intensity();
+
+	UFUNCTION(BlueprintCallable)
+	static int ExploreBLE_getBLE_endurance();
+
+	UFUNCTION(BlueprintCallable)
+	static int ExploreBLE_getBLE_LeftBalance();
+
+	UFUNCTION(BlueprintCallable)
+	static int ExploreBLE_getBLE_RightBalance();
+
+	UFUNCTION(BlueprintCallable)
+	static int ExploreBLE_getBLE_MaxExtensionLeft();
+
+	UFUNCTION(BlueprintCallable)
+	static int ExploreBLE_getBLE_MaxExtensionRight();
+
 	UPROPERTY(VisibleAnywhere)
 	bool bleConnected;
 
 	UPROPERTY(VisibleAnywhere)
 	FString bleDeviceAddress;
+
+	UPROPERTY(VisibleAnywhere)
+	int bleIntensity;
+
+	UPROPERTY(VisibleAnywhere)
+	int bleEndurance;
+
+	UPROPERTY(VisibleAnywhere)
+	int bleLeftBalance;
+
+	UPROPERTY(VisibleAnywhere)
+	int bleRightBalance;
+
+	UPROPERTY(VisibleAnywhere)
+	int bleExtensionLeft;
+
+	UPROPERTY(VisibleAnywhere)
+	int bleExtensionRight;
 };

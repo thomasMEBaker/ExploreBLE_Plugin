@@ -114,7 +114,11 @@ dependencies {
 			
 			private native void nativeBLEConnected(boolean connected);
 			private native void nativeBLEReturnDeviceAddress(String device_address);
-		
+      private native void nativeBLEReturnIntensity(int intensity);
+      private native void nativeBLEReturnEndurance(int endurance);
+      //private native void nativeBLEReturnLeftBalance(int left);
+      //private native void nativeBLEReturnRightBalance(int right);
+      
 			private BLEManager bleManager;
 			String deviceAddress;
 			
@@ -310,37 +314,39 @@ dependencies {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("INTENSITY UPDATED " + notificationValue);
-							Java_ShowToast("INTENSITY UPDATED " + notificationValue);
+							//Java_ShowToast("INTENSITY UPDATED " + notificationValue);
+              nativeBLEReturnIntensity(notificationValue);
 						}
 						else if (characteristic.getUuid().equals(ENDURANCE_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("ENDURANCE UPDATED " + notificationValue);
-							Java_ShowToast("ENDURANCE UPDATED " + notificationValue);
+							//Java_ShowToast("ENDURANCE UPDATED " + notificationValue);
+              nativeBLEReturnEndurance(notificationValue);
 						}
 						else if (characteristic.getUuid().equals(LEFT_BALANCE_UUID)) {
 						    byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("LEFT BALANCE UPDATED " + notificationValue);
-							Java_ShowToast("LEFT BALANCE UPDATED " + notificationValue);
+							//Java_ShowToast("LEFT BALANCE UPDATED " + notificationValue);
 						}
 						else if (characteristic.getUuid().equals(RIGHT_BALANCE_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("RIGHT BALANCE UPDATED " + notificationValue);
-							Java_ShowToast("RIGHT BALANCE UPDATED " + notificationValue);
+							//Java_ShowToast("RIGHT BALANCE UPDATED " + notificationValue);
 						}
 						else if (characteristic.getUuid().equals(MAX_EXTENSION_LEFT_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("MAX LEFT UPDATED " + notificationValue);
-							Java_ShowToast("MAX LEFT UPDATED " + notificationValue);
+							//Java_ShowToast("MAX LEFT UPDATED " + notificationValue);
 						}
 						else if (characteristic.getUuid().equals(MAX_EXTENSION_RIGHT_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();
 							int notificationValue = charactertisicVal[0] & 0xFF;
 							System.out.println("MAX RIGHT UPDATED " + notificationValue);
-							Java_ShowToast("MAX RIGHT UPDATED " + notificationValue);
+							//Java_ShowToast("MAX RIGHT UPDATED " + notificationValue);
 						}
 						}
 					};		

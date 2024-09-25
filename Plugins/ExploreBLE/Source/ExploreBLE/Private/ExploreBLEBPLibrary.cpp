@@ -39,6 +39,26 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #endif
 }
 
+extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeBLEReturnIntensity(JNIEnv * env, jobject classObj, jint intensity)
+{
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		singleton->bleIntensity = intensity;
+	}
+#endif
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeBLEReturnEndurance(JNIEnv * env, jobject classObj, jint endurance)
+{
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		singleton->bleEndurance = endurance;
+	}
+#endif
+}
+
 #endif
 
 UExploreBLEBPLibrary::UExploreBLEBPLibrary(const FObjectInitializer& ObjectInitializer)
@@ -61,6 +81,30 @@ bool UExploreBLEBPLibrary::ExploreBLE_getBleConnectionStatus() {
 
 FString UExploreBLEBPLibrary::ExploreBLE_getBleDeviceAddress() {
 	return singleton->bleDeviceAddress;
+}
+
+int UExploreBLEBPLibrary::ExploreBLE_getBLE_intensity() {
+	return singleton->bleIntensity;
+}
+
+int UExploreBLEBPLibrary::ExploreBLE_getBLE_endurance() {
+	return singleton->bleEndurance;
+}
+
+int UExploreBLEBPLibrary::ExploreBLE_getBLE_LeftBalance() {
+	return singleton->bleLeftBalance;
+}
+
+int UExploreBLEBPLibrary::ExploreBLE_getBLE_RightBalance() {
+	return singleton->bleRightBalance;
+}
+
+int UExploreBLEBPLibrary::ExploreBLE_getBLE_MaxExtensionLeft() {
+	return singleton->bleExtensionLeft;
+}
+
+int UExploreBLEBPLibrary::ExploreBLE_getBLE_MaxExtensionRight() {
+	return singleton->bleExtensionRight;
 }
 
 bool UExploreBLEBPLibrary::ExploreBLE_ConnectBLE() {
