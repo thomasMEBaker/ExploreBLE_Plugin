@@ -1,9 +1,9 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ExploreBLEBPLibrary.h"
-#include "ExploreBLE.h"
 
-static UExploreBLEBPLibrary* singleton = NULL;
+#include "BLEActor.h"
+
+static ABLEActor* singleton = NULL;
 
 #if PLATFORM_ANDROID
 #include "Android/AndroidJNI.h"
@@ -14,7 +14,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		singleton->bleConnected = connected;
+		//singleton->bleConnected = connected;
 		FString test = FString::Printf(TEXT("BLE Connected: %s"), connected ? TEXT("true") : TEXT("false"));
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, test);
 	}
@@ -31,7 +31,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 		std::string stdStr = convertedValue;
 		env->ReleaseStringUTFChars(device_address, convertedValue);
 		FString deviceAddressStr = UTF8_TO_TCHAR(stdStr.c_str());
-		singleton->bleDeviceAddress = deviceAddressStr;
+		//singleton->bleDeviceAddress = deviceAddressStr;
 
 		FString test = FString::Printf(TEXT("BLE Device Address: %s"), *deviceAddressStr);
 		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, test);
@@ -44,7 +44,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		singleton->bleIntensity = intensity;
+		singleton->BLE_Intensity_TriggerEvent(intensity);
 	}
 #endif
 }
@@ -54,7 +54,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		singleton->bleEndurance = endurance;
+		singleton->BLE_Endurance_TriggerEvent(endurance);
+
 	}
 #endif
 }
@@ -64,7 +65,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		singleton->bleLeftBalance = leftBalance;
+		singleton->BLE_LeftBalance_TriggerEvent(leftBalance);
+
 	}
 #endif
 }
@@ -74,7 +76,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		singleton->bleRightBalance = rightBalance;
+		singleton->BLE_RightBalance_TriggerEvent(rightBalance);
 	}
 #endif
 }
@@ -83,8 +85,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 {
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
-	{ 
-		singleton->bleExtensionLeft = maxLeft;
+	{
+		singleton->BLE_LeftMax_TriggerEvent(maxLeft);
 	}
 #endif
 }
@@ -94,60 +96,44 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-	singleton->bleExtensionRight = maxRight;
+		singleton->BLE_RightMax_TriggerEvent(maxRight);
 	}
 #endif
 }
 
 #endif
 
-UExploreBLEBPLibrary::UExploreBLEBPLibrary(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+// Sets default values
+ABLEActor::ABLEActor()
 {
+ 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
 	singleton = this;
 }
 
 
-UExploreBLEBPLibrary::~UExploreBLEBPLibrary()
-{
+ABLEActor::~ABLEActor() {
 	singleton = NULL;
 }
 
 
-bool UExploreBLEBPLibrary::ExploreBLE_getBleConnectionStatus() {
-	return singleton->bleConnected;
+// Called when the game starts or when spawned
+void ABLEActor::BeginPlay()
+{
+	Super::BeginPlay();
+	
+}
+
+// Called every frame
+void ABLEActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
 }
 
 
-FString UExploreBLEBPLibrary::ExploreBLE_getBleDeviceAddress() {
-	return singleton->bleDeviceAddress;
-}
 
-int UExploreBLEBPLibrary::ExploreBLE_getBLE_intensity() {
-	return singleton->bleIntensity;
-}
-
-int UExploreBLEBPLibrary::ExploreBLE_getBLE_endurance() {
-	return singleton->bleEndurance;
-}
-
-int UExploreBLEBPLibrary::ExploreBLE_getBLE_LeftBalance() {
-	return singleton->bleLeftBalance;
-}
-
-int UExploreBLEBPLibrary::ExploreBLE_getBLE_RightBalance() {
-	return singleton->bleRightBalance;
-}
-
-int UExploreBLEBPLibrary::ExploreBLE_getBLE_MaxExtensionLeft() {
-	return singleton->bleExtensionLeft;
-}
-
-int UExploreBLEBPLibrary::ExploreBLE_getBLE_MaxExtensionRight() {
-	return singleton->bleExtensionRight;
-}
-
-bool UExploreBLEBPLibrary::ExploreBLE_ConnectBLE() {
+bool ABLEActor::ExploreBLE_ConnectBLE() {
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
 	{
@@ -156,7 +142,8 @@ bool UExploreBLEBPLibrary::ExploreBLE_ConnectBLE() {
 
 		if (bResult == true) {
 			return true;
-		}else {
+		}
+		else {
 			return false;
 		}
 	}
@@ -165,7 +152,7 @@ bool UExploreBLEBPLibrary::ExploreBLE_ConnectBLE() {
 }
 
 
-void UExploreBLEBPLibrary::ExploreBLE_ShowToast(const FString& Content)
+void ABLEActor::ExploreBLE_ShowToast(const FString& Content)
 {
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
@@ -177,3 +164,32 @@ void UExploreBLEBPLibrary::ExploreBLE_ShowToast(const FString& Content)
 #endif
 }
 
+
+void ABLEActor::BLE_OnConnection_TriggerEvent(bool ConnectionValue) {
+	OnConnected.Broadcast(ConnectionValue);
+}
+
+void ABLEActor::BLE_Intensity_TriggerEvent(int32 Intensity) {
+	OnIntensity.Broadcast(Intensity);
+}
+
+
+void ABLEActor::BLE_Endurance_TriggerEvent(int32 Endurance) {
+	OnEndurance.Broadcast(Endurance);
+}
+
+void ABLEActor::BLE_RightBalance_TriggerEvent(int32 RightBalanceValue) {
+	OnRightBalance.Broadcast(RightBalanceValue);
+}
+
+void ABLEActor::BLE_LeftBalance_TriggerEvent(int32 LeftBalanceValue) {
+	OnLeftBalance.Broadcast(LeftBalanceValue);
+}
+
+void ABLEActor::BLE_RightMax_TriggerEvent(int32 RightMaxValue) {
+	OnRightMax.Broadcast(RightMaxValue);
+}
+
+void ABLEActor::BLE_LeftMax_TriggerEvent(int32 LeftMaxValue) {
+	OnLeftMax.Broadcast(LeftMaxValue);
+}
