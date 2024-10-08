@@ -73,7 +73,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 {
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
-	
+	{
 		singleton->bleRightBalance = rightBalance;
 	}
 #endif
@@ -83,9 +83,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 {
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
-
+	{ 
 		singleton->bleExtensionLeft = maxLeft;
-}
+	}
 #endif
 }
 
@@ -93,9 +93,9 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 {
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
-
-		singleton->bleExtensionRight = maxRight;
-}
+	{
+	singleton->bleExtensionRight = maxRight;
+	}
 #endif
 }
 
