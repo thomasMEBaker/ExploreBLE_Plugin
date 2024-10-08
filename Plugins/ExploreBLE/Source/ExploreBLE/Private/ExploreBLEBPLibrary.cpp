@@ -59,6 +59,46 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #endif
 }
 
+extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeBLEReturnLeftBalance(JNIEnv * env, jobject classObj, jint leftBalance)
+{
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		singleton->bleLeftBalance = leftBalance;
+	}
+#endif
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeBLEReturnRightBalance(JNIEnv * env, jobject classObj, jint rightBalance)
+{
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	
+		singleton->bleRightBalance = rightBalance;
+	}
+#endif
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeBLEReturnMaxLeft(JNIEnv * env, jobject classObj, jint maxLeft)
+{
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+
+		singleton->bleExtensionLeft = maxLeft;
+}
+#endif
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeBLEReturnMaxRight(JNIEnv * env, jobject classObj, jint maxRight)
+{
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+
+		singleton->bleExtensionRight = maxRight;
+}
+#endif
+}
+
 #endif
 
 UExploreBLEBPLibrary::UExploreBLEBPLibrary(const FObjectInitializer& ObjectInitializer)
