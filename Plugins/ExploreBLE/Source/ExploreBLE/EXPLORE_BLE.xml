@@ -253,14 +253,14 @@ dependencies {
 						 if (newState == BluetoothProfile.STATE_CONNECTED) {
 							gatt.discoverServices();
 							System.out.println("Connected to GATT server");
-							Java_ShowToast("Connected to GATT server");
+							//Java_ShowToast("Connected to GATT server");
 							nativeBLEConnected(true);
 							nativeBLEReturnDeviceAddress(deviceAddress);
 
 						}
 						else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
 							System.out.println("Disconnected from GATT server");
-							Java_ShowToast("Disconnected from GATT server");
+							//Java_ShowToast("Disconnected from GATT server");
 							nativeBLEConnected(false);
 							nativeBLEReturnDeviceAddress("-");
 						}
@@ -283,7 +283,7 @@ dependencies {
 									subscribeToCharacteristics(gatt);
 								}
 							}
-							Java_ShowToast("onServicesDiscovered");
+							//Java_ShowToast("onServicesDiscovered");
 						}
 					
 					  private void subscribeToCharacteristics(BluetoothGatt gatt) {
@@ -388,12 +388,12 @@ dependencies {
 						if (deviceName.startsWith("MotusVR") && isConnected(device)) {
 							deviceAddress = device.getAddress();
 							System.out.println("BLE: Motus Device Connected with address: " + deviceAddress);
-							Java_ShowToast("BLE: Motus Device Connected with address: " + deviceAddress);
+							//Java_ShowToast("BLE: Motus Device Connected with address: " + deviceAddress);
 							Activity activity = (Activity) this;
 							bleManager = new BLEManager(this, activity);
 							if(bleManager.connectToDevice(deviceAddress)){
 								System.out.println("BLE: Motus BLE Connected");
-								Java_ShowToast("BLE: Motus BLE Connected");
+								//Java_ShowToast("BLE: Motus BLE Connected");
 								return true;
 							}else{
 								System.out.println("BLE: Motus BLE NOT!");
