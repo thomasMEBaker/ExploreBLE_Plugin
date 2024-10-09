@@ -371,46 +371,44 @@ dependencies {
 		}
 		
 	
-		    boolean Java_ConnectToBLEService() {
-				BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-				Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+    boolean Java_ConnectToBLEService() {
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
 
-				if (bluetoothAdapter == null) {
-					System.out.println("BLE: bluetoothAdapter == null");
-					return false;
-				} else if (!bluetoothAdapter.isEnabled()) {
-					System.out.println("BLE: !bluetoothAdapter.isEnabled()");
-					return false;
-				}
-				else {
-					for (BluetoothDevice device : pairedDevices) {
-						String deviceName = device.getName();
-						if (deviceName.startsWith("MotusVR") && isConnected(device)) {
-							deviceAddress = device.getAddress();
-							System.out.println("BLE: Motus Device Connected with address: " + deviceAddress);
-							//Java_ShowToast("BLE: Motus Device Connected with address: " + deviceAddress);
-							Activity activity = (Activity) this;
-							bleManager = new BLEManager(this, activity);
-							if(bleManager.connectToDevice(deviceAddress)){
-								System.out.println("BLE: Motus BLE Connected");
-								//Java_ShowToast("BLE: Motus BLE Connected");
-								return true;
-							}else{
-								System.out.println("BLE: Motus BLE NOT!");
-								//Java_ShowToast("BLE: Motus BLE NOT!");
-								return false;
-								}
-							}
-						else{
-							System.out.println("BLE: Motus BLE PAIRED BUT NOT CONNECTED!");
-							//Java_ShowToast("BLE: Motus BLE PAIRED BUT NOT CONNECTED!");
-							return false;
-						}
-					}
-				}
-				return false;
-			}
-			
+        if (bluetoothAdapter == null) {
+            System.out.println("BLE: bluetoothAdapter == null");
+            return false;
+        } else if (!bluetoothAdapter.isEnabled()) {
+            System.out.println("BLE: !bluetoothAdapter.isEnabled()");
+            return false;
+        }
+        else {
+            for (BluetoothDevice device : pairedDevices) {
+                String deviceName = device.getName();
+                if (deviceName.startsWith("MotusVR") && isConnected(device)) {
+                    deviceAddress = device.getAddress();
+                    System.out.println("BLE: Motus Device Connected with address: " + deviceAddress);
+                    Activity activity = (Activity) this;
+                    bleManager = new BLEManager(this, activity);
+                    if(bleManager.connectToDevice(deviceAddress)){
+                        System.out.println("BLE: Motus BLE Connected");
+                        return true;
+                    }else{
+                        System.out.println("BLE: Motus BLE NOT!");
+                        return false;
+                        }
+                    }
+                    else if (deviceName.startsWith("MotusVR")) {
+                        System.out.println("BLE: Motus BLE PAIRED BUT NOT CONNECTED!");
+                    }
+                    else{
+                        System.out.println("BLE: BLE DEVICE PAIRED - IGNORE");
+                        return false;
+                }
+            }
+        }
+        return false;
+    }
 
 
 
