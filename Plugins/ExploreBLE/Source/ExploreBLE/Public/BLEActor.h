@@ -8,6 +8,7 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectionEvent, bool, ConnectionValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeviceAddressEvent, FString, DeviceAddressValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIntensityEvent, int32, IntensityValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnduranceEvent, int32, EndruanceValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRightBalanceEvent, int32, RightBalanceValue);
@@ -25,8 +26,14 @@ public:
 	// Sets default values for this actor's properties
 	ABLEActor();
 	~ABLEActor();
+
+	bool connectionStatus;
+
 	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
 	FOnConnectionEvent OnConnected;
+
+	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
+	FOnDeviceAddressEvent OnDeviceAddress;
 
 	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
 	FOnIntensityEvent OnIntensity;
@@ -48,6 +55,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "BLE Events")
 	void BLE_OnConnection_TriggerEvent(bool ConnectionValue);
+
+	UFUNCTION(BlueprintCallable, Category = "BLE Events")
+	void BLE_DeviceAddress_TriggerEvent(FString DeviceAddressValue);
 
 	UFUNCTION(BlueprintCallable, Category = "BLE Events")
 	void BLE_Intensity_TriggerEvent(int32 Intensity);

@@ -14,9 +14,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
-		//singleton->bleConnected = connected;
-		FString test = FString::Printf(TEXT("BLE Connected: %s"), connected ? TEXT("true") : TEXT("false"));
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, test);
+		singleton->connectionStatus = false;
+		singleton->BLE_OnConnection_TriggerEvent(connected);
 	}
 #endif
 }
@@ -31,10 +30,8 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 		std::string stdStr = convertedValue;
 		env->ReleaseStringUTFChars(device_address, convertedValue);
 		FString deviceAddressStr = UTF8_TO_TCHAR(stdStr.c_str());
-		//singleton->bleDeviceAddress = deviceAddressStr;
-
-		FString test = FString::Printf(TEXT("BLE Device Address: %s"), *deviceAddressStr);
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, test);
+		FString ble_address = FString::Printf(TEXT("BLE Device Address: %s"), *deviceAddressStr);
+		singleton->BLE_DeviceAddress_TriggerEvent(ble_address);
 	}
 #endif
 }
@@ -106,9 +103,10 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 // Sets default values
 ABLEActor::ABLEActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	singleton = this;
+	singleton->connectionStatus = false;
 }
 
 
@@ -135,18 +133,22 @@ void ABLEActor::Tick(float DeltaTime)
 
 bool ABLEActor::ExploreBLE_ConnectBLE() {
 #if PLATFORM_ANDROID
-	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
-	{
-		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "Java_ConnectToBLEService", "()Z", false);
-		jboolean bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, Method);
+	if (!singleton->connectionStatus) {
+		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
+		{
+			static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "Java_ConnectToBLEService", "()Z", false);
+			jboolean bResult = FJavaWrapper::CallBooleanMethod(Env, FJavaWrapper::GameActivityThis, Method);
 
-		if (bResult == true) {
-			return true;
+			if (bResult == true) {
+				singleton->connectionStatus = true;
+				return true;
+			}
+			else {
+				singleton->connectionStatus = false;
+				return false;
+			}
 		}
-		else {
-			return false;
-		}
-	}
+}
 #endif
 	return false;
 }
@@ -167,6 +169,11 @@ void ABLEActor::ExploreBLE_ShowToast(const FString& Content)
 
 void ABLEActor::BLE_OnConnection_TriggerEvent(bool ConnectionValue) {
 	OnConnected.Broadcast(ConnectionValue);
+}
+
+
+void ABLEActor::BLE_DeviceAddress_TriggerEvent(FString DeviceAddressValue) {
+	OnDeviceAddress.Broadcast(DeviceAddressValue);
 }
 
 void ABLEActor::BLE_Intensity_TriggerEvent(int32 Intensity) {
