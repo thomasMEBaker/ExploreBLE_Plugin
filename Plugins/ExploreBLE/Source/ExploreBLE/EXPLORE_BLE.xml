@@ -106,6 +106,7 @@ dependencies {
 			private native void nativeBLEReturnDeviceAddress(String device_address);
 			private native void nativeBLEReturnIntensity(int intensity);
 			private native void nativeBLEReturnEndurance(int endurance);
+			private native void nativeBLEReturnLeftRightBalance(int[] leftRightBalance);
 			private native void nativeBLEReturnLeftBalance(int leftBalance);
 			private native void nativeBLEReturnRightBalance(int rightBalance);
 			private native void nativeBLEReturnMaxLeft(int maxLeft);
@@ -144,6 +145,7 @@ dependencies {
 				private UUID RIGHT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8054-4c8a-bc67-146a66d0443e");
 				private UUID MAX_EXTENSION_LEFT_UUID = UUID.fromString("9c9d4aa7-8055-4c8a-bc67-146a66d0443e");
 				private UUID MAX_EXTENSION_RIGHT_UUID = UUID.fromString("9c9d4aa7-8056-4c8a-bc67-146a66d0443e");
+				private UUID LEFT_RIGHT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8057-4c8a-bc67-146a66d0443e");
 				private UUID CCC_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
 				
 				List<BluetoothGattCharacteristic> chars = new ArrayList<>();
@@ -163,6 +165,18 @@ dependencies {
 						BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
 						bluetoothGatt = device.connectGatt(context, true, gattCallback);
 						return true;
+					}
+					
+					 void readLeftRightBalance() {
+						if (service != null) {
+							for (BluetoothGattCharacteristic characteristic : characteristics) {
+								UUID characteristicUuid = characteristic.getUuid();
+								if (characteristic != null && characteristicUuid.equals(LEFT_RIGHT_BALANCE_UUID)) {
+									System.out.println("LEFT/RIGHT BALANCE READ");
+									bluetoothGatt.readCharacteristic(characteristic);
+								}
+							}
+						}
 					}
 					
 					void readIntensity() {
@@ -309,6 +323,19 @@ dependencies {
 							System.out.println("INTENSITY UPDATED " + notificationValue);
 							//Java_ShowToast("INTENSITY UPDATED " + notificationValue);
 							nativeBLEReturnIntensity(notificationValue);
+						}
+						else if (characteristic.getUuid().equals(LEFT_RIGHT_BALANCE_UUID)) {
+							byte[] charactertisicVal = characteristic.getValue();
+							if (charactertisicVal.length >= 2) {
+								int leftBalance = charactertisicVal[0] & 0xFF;
+								int rightBalance = charactertisicVal[1] & 0xFF;
+								System.out.println("HELLO LEFT/RIGHT UPDATED - LEFT " + leftBalance);
+								System.out.println("HELLO LEFT/RIGHT UPDATED - RIGHT " + rightBalance);
+								nativeBLEReturnLeftRightBalance(charactertisicVal);
+							}
+							else{
+								System.out.println("HELLO LEFT/RIGHT BUT TOO SMALL");
+							}
 						}
 						else if (characteristic.getUuid().equals(ENDURANCE_UUID)) {
 							byte[] charactertisicVal = characteristic.getValue();

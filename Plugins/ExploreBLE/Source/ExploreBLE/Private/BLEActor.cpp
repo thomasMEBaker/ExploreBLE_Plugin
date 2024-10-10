@@ -166,7 +166,6 @@ void ABLEActor::ExploreBLE_ShowToast(const FString& Content)
 #endif
 }
 
-
 void ABLEActor::BLE_OnConnection_TriggerEvent(bool ConnectionValue) {
 	OnConnected.Broadcast(ConnectionValue);
 }
@@ -191,6 +190,10 @@ void ABLEActor::BLE_RightBalance_TriggerEvent(int32 RightBalanceValue) {
 
 void ABLEActor::BLE_LeftBalance_TriggerEvent(int32 LeftBalanceValue) {
 	OnLeftBalance.Broadcast(LeftBalanceValue);
+}
+
+void ABLEActor::BLE_LeftRightBalance_TriggerEvent(const TArray<int32>& LeftRightBalanceValue) {
+	OnLeftRightBalance.Broadcast(LeftRightBalanceValue);
 }
 
 void ABLEActor::BLE_RightMax_TriggerEvent(int32 RightMaxValue) {

@@ -11,6 +11,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectionEvent, bool, Connection
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeviceAddressEvent, FString, DeviceAddressValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIntensityEvent, int32, IntensityValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnduranceEvent, int32, EndruanceValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLeftRightBalanceEvent, const TArray<int32>&, LeftRightBalanceValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRightBalanceEvent, int32, RightBalanceValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLeftBalanceEvent, int32, LeftBalanceValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRightMaxEvent, int32, RightMaxValue);
@@ -42,6 +43,9 @@ public:
 	FOnEnduranceEvent OnEndurance;
 
 	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
+	FOnLeftRightBalanceEvent OnLeftRightBalance;
+
+	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
 	FOnRightBalanceEvent OnRightBalance;
 
 	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
@@ -70,6 +74,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "BLE Events")
 	void BLE_LeftBalance_TriggerEvent(int32 LeftBalanceValue);
+
+	UFUNCTION(BlueprintCallable, Category = "BLE Events")
+
+	void BLE_LeftRightBalance_TriggerEvent(const TArray<int32>& LeftRightBalanceValue);
 
 	UFUNCTION(BlueprintCallable, Category = "BLE Events")
 	void BLE_RightMax_TriggerEvent(int32 RightMaxValue);
