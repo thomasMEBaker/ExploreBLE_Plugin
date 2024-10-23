@@ -92,6 +92,8 @@ dependencies {
 			import java.util.ArrayList;
 			import java.util.List;
 			import java.util.UUID;
+      import static android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT;
+
 		
 		</insert>
 	</gameActivityImportAdditions>
@@ -147,6 +149,7 @@ dependencies {
 				private UUID MAX_EXTENSION_RIGHT_UUID = UUID.fromString("9c9d4aa7-8056-4c8a-bc67-146a66d0443e");
 				private UUID LEFT_RIGHT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8057-4c8a-bc67-146a66d0443e");
 				private UUID CCC_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
+        private UUID RECENTRE_UUID = UUID.fromString("9c9d4aa7-8057-4c8a-bc67-146a66d0443e");
 				
 				List<BluetoothGattCharacteristic> chars = new ArrayList<>();
 
@@ -238,7 +241,9 @@ dependencies {
 							}
 						}
 					}
-					
+          
+
+          
 					void readMaxRight() {
 						if (service != null) {
 							for (BluetoothGattCharacteristic characteristic : characteristics) {
@@ -426,6 +431,35 @@ dependencies {
         }
         return false;
     }
+    
+    void sendRecentreCharacteristic() {
+				for (BluetoothGattCharacteristic characteristic : characteristics) {
+							UUID characteristicUuid = characteristic.getUuid();
+							if (characteristic != null && characteristicUuid.equals(RECENTRE_UUID)) {
+											// true is represented as 0x01, false as 0x00)
+											byte[] value = new byte[1];
+											value[0] = 0x01;
+											characteristic.setValue(value);
+
+											int writeType = WRITE_TYPE_DEFAULT;
+											int status = bluetoothGatt.writeCharacteristic(characteristic, value, writeType);
+
+											int properties = characteristic.getProperties();
+											if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
+													//Log.e("BLE", "Characteristic does not support writing.");
+											}
+
+											if (status == BluetoothGatt.GATT_SUCCESS) {
+													//Log.d("BLE", "Write to RECENTRE_UUID initiated successfully.");
+											} else {
+													//Log.d("BLE", "Failed to initiate write to RECENTRE_UUID. Status: " + status);
+											}
+											break;
+									}
+							}
+					}
+    
+    
 
 
 

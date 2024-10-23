@@ -85,6 +85,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BLE Events")
 	void BLE_LeftMax_TriggerEvent(int32 LeftMaxValue);
 
+	UFUNCTION(BlueprintCallable, Category = "BLE Events")
+	void ExploreBLE_SendRecentreFeetPosition();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
