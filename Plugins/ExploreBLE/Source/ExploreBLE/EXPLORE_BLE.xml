@@ -182,6 +182,33 @@ dependencies {
 						}
 					}
 					
+					    void sendRecentreCharacteristic() {
+				for (BluetoothGattCharacteristic characteristic : characteristics) {
+							UUID characteristicUuid = characteristic.getUuid();
+							if (characteristic != null && characteristicUuid.equals(RECENTRE_UUID)) {
+											// true is represented as 0x01, false as 0x00)
+											byte[] value = new byte[1];
+											value[0] = 0x01;
+											characteristic.setValue(value);
+
+											int writeType = WRITE_TYPE_DEFAULT;
+											int status = bluetoothGatt.writeCharacteristic(characteristic, value, writeType);
+
+											int properties = characteristic.getProperties();
+											if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
+													//Log.e("BLE", "Characteristic does not support writing.");
+											}
+
+											if (status == BluetoothGatt.GATT_SUCCESS) {
+													//Log.d("BLE", "Write to RECENTRE_UUID initiated successfully.");
+											} else {
+													//Log.d("BLE", "Failed to initiate write to RECENTRE_UUID. Status: " + status);
+											}
+											break;
+									}
+							}
+					}
+					
 					void readIntensity() {
 						if (service != null) {
 							for (BluetoothGattCharacteristic characteristic : characteristics) {
@@ -336,7 +363,7 @@ dependencies {
 								int rightBalance = charactertisicVal[1] & 0xFF;
 								System.out.println("HELLO LEFT/RIGHT UPDATED - LEFT " + leftBalance);
 								System.out.println("HELLO LEFT/RIGHT UPDATED - RIGHT " + rightBalance);
-								nativeBLEReturnLeftRightBalance(charactertisicVal);
+								//nativeBLEReturnLeftRightBalance(charactertisicVal); - this needs updating
 							}
 							else{
 								System.out.println("HELLO LEFT/RIGHT BUT TOO SMALL");
@@ -392,6 +419,10 @@ dependencies {
 			}
 		}
 		
+		
+		void Java_SendCentre(){
+			bleManager.sendRecentreCharacteristic();
+		}
 	
     boolean Java_ConnectToBLEService() {
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -432,32 +463,7 @@ dependencies {
         return false;
     }
     
-    void sendRecentreCharacteristic() {
-				for (BluetoothGattCharacteristic characteristic : characteristics) {
-							UUID characteristicUuid = characteristic.getUuid();
-							if (characteristic != null && characteristicUuid.equals(RECENTRE_UUID)) {
-											// true is represented as 0x01, false as 0x00)
-											byte[] value = new byte[1];
-											value[0] = 0x01;
-											characteristic.setValue(value);
 
-											int writeType = WRITE_TYPE_DEFAULT;
-											int status = bluetoothGatt.writeCharacteristic(characteristic, value, writeType);
-
-											int properties = characteristic.getProperties();
-											if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
-													//Log.e("BLE", "Characteristic does not support writing.");
-											}
-
-											if (status == BluetoothGatt.GATT_SUCCESS) {
-													//Log.d("BLE", "Write to RECENTRE_UUID initiated successfully.");
-											} else {
-													//Log.d("BLE", "Failed to initiate write to RECENTRE_UUID. Status: " + status);
-											}
-											break;
-									}
-							}
-					}
     
     
 

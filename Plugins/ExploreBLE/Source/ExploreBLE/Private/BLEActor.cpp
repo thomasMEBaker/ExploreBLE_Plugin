@@ -166,23 +166,18 @@ void ABLEActor::ExploreBLE_ShowToast(const FString& Content)
 #endif
 }
 
-<<<<<<< HEAD
-
 void ABLEActor::ExploreBLE_SendRecentreFeetPosition()
 {
 #if PLATFORM_ANDROID
 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
 	{
-		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "sendRecentreCharacteristic", "()V", false);
+		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "Java_SendCentre", "()V", false);
 		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, Method);
 	}
 #endif
 }
 
 
-
-=======
->>>>>>> 18dbbb0cfcc05306ec6cf515d74aaaf331afb389
 void ABLEActor::BLE_OnConnection_TriggerEvent(bool ConnectionValue) {
 	OnConnected.Broadcast(ConnectionValue);
 }
