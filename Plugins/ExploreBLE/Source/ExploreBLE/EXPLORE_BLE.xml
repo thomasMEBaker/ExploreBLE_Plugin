@@ -92,9 +92,17 @@ dependencies {
 			import java.util.ArrayList;
 			import java.util.List;
 			import java.util.UUID;
-      import static android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT;
-
-		
+			import java.util.Set;
+			import java.lang.reflect.Method;
+			import android.app.Activity;
+			import android.widget.TextView;
+			import android.os.Build;
+			import android.os.Handler;
+			import android.os.Looper;
+			import android.util.Log;
+			import androidx.core.app.ActivityCompat;
+			import android.content.pm.PackageManager;
+			import static android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT;
 		</insert>
 	</gameActivityImportAdditions>
 
@@ -118,17 +126,23 @@ dependencies {
 			private BLEManager bleManager;
 			String deviceAddress;
 			
+			private Handler bleHandler;
+			private int notificationCount = 0;
+			private int missedNotificationCount = 0;
+			private long firstNotificationTime = 0;
+			private long lastNotificationTime = 0;
+			
 			public void Java_ShowToast(final String toast) {
-			runOnUiThread(new Runnable() {
-				public void run() {
-					CharSequence cs = toast;
-					Toast.makeText(getApplicationContext(), cs, Toast.LENGTH_LONG).show();
+				runOnUiThread(new Runnable() {
+					public void run() {
+						CharSequence cs = toast;
+						Toast.makeText(getApplicationContext(), cs, Toast.LENGTH_LONG).show();
 					}
 				});
 			}
 			
 			public class BLEManager {
-			    private BluetoothAdapter bluetoothAdapter;
+				private BluetoothAdapter bluetoothAdapter;
 				private BluetoothGatt bluetoothGatt;
 				private BluetoothGattService service;
 
@@ -149,326 +163,271 @@ dependencies {
 				private UUID MAX_EXTENSION_RIGHT_UUID = UUID.fromString("9c9d4aa7-8056-4c8a-bc67-146a66d0443e");
 				private UUID LEFT_RIGHT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8057-4c8a-bc67-146a66d0443e");
 				private UUID CCC_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
-        private UUID RECENTRE_UUID = UUID.fromString("9c9d4aa7-8057-4c8a-bc67-146a66d0443e");
+				private UUID RECENTRE_UUID = UUID.fromString("9c9d4aa7-8058-4c8a-bc67-146a66d0443e");
+				private UUID FEET_DATA_UUID = UUID.fromString("9c9d4aa7-8059-4c8a-bc67-146a66d0443e");
 				
 				List<BluetoothGattCharacteristic> chars = new ArrayList<>();
 
 				public BLEManager(Context context, Activity act) {
 					this.context = context;
 					this.activity = act;
-				
+					this.bleHandler = new Handler(Looper.getMainLooper());
+
 					BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 					if (bluetoothManager != null) {
 						bluetoothAdapter = bluetoothManager.getAdapter();
-						}
 					}
-					
-					public boolean connectToDevice(String deviceAddress) {
-						BluetoothAdapter myAdapter;
-						BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
-						bluetoothGatt = device.connectGatt(context, true, gattCallback);
-						return true;
-					}
-					
-					 void readLeftRightBalance() {
-						if (service != null) {
-							for (BluetoothGattCharacteristic characteristic : characteristics) {
-								UUID characteristicUuid = characteristic.getUuid();
-								if (characteristic != null && characteristicUuid.equals(LEFT_RIGHT_BALANCE_UUID)) {
-									System.out.println("LEFT/RIGHT BALANCE READ");
-									bluetoothGatt.readCharacteristic(characteristic);
+				}
+				
+				public boolean connectToDevice(String deviceAddress) {
+					BluetoothAdapter myAdapter;
+					BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
+					bluetoothGatt = device.connectGatt(context, true, gattCallback);
+					return true;
+				}
+				
+				private void subscribeToCharacteristics(BluetoothGatt gatt) {
+					if (service == null) return;
+
+					BluetoothGattCharacteristic feetDataChar = service.getCharacteristic(FEET_DATA_UUID);
+					if (feetDataChar != null) {
+						boolean success = gatt.setCharacteristicNotification(feetDataChar, true);
+						android.util.Log.d("BLE", "setCharacteristicNotification: " + success);
+
+						bleHandler.postDelayed(new Runnable() {
+							@Override
+							public void run() {
+								BluetoothGattDescriptor descriptor = feetDataChar.getDescriptor(CCC_DESCRIPTOR_UUID);
+								if (descriptor != null) {
+									if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+										gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+									} else {
+										descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+										gatt.writeDescriptor(descriptor);
+									}
+									android.util.Log.d("BLE_TIMING", "Writing descriptor at: " + System.currentTimeMillis());
 								}
 							}
-						}
+						}, 100);
 					}
-					
-					    void sendRecentreCharacteristic() {
-				for (BluetoothGattCharacteristic characteristic : characteristics) {
-							UUID characteristicUuid = characteristic.getUuid();
-							if (characteristic != null && characteristicUuid.equals(RECENTRE_UUID)) {
-											// true is represented as 0x01, false as 0x00)
-											byte[] value = new byte[1];
-											value[0] = 0x01;
-											characteristic.setValue(value);
+				}
+				
+				    void sendRecentreCharacteristic() {
+						for (BluetoothGattCharacteristic characteristic : characteristics) {
+									UUID characteristicUuid = characteristic.getUuid();
+									if (characteristic != null && characteristicUuid.equals(RECENTRE_UUID)) {
+													// true is represented as 0x01, false as 0x00)
+													byte[] value = new byte[1];
+													value[0] = 0x01;
+													characteristic.setValue(value);
 
-											int writeType = WRITE_TYPE_DEFAULT;
-											int status = bluetoothGatt.writeCharacteristic(characteristic, value, writeType);
+													int writeType = WRITE_TYPE_DEFAULT;
+													boolean status = bluetoothGatt.writeCharacteristic(characteristic);
 
-											int properties = characteristic.getProperties();
-											if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
-													//Log.e("BLE", "Characteristic does not support writing.");
+													int properties = characteristic.getProperties();
+													if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
+															//Log.e("BLE", "Characteristic does not support writing.");
+													}
+
+													if (status == true) {
+															//Log.d("BLE", "Write to RECENTRE_UUID initiated successfully.");
+													} else {
+															//Log.d("BLE", "Failed to initiate write to RECENTRE_UUID. Status: " + status);
+													}
+													break;
 											}
-
-											if (status == BluetoothGatt.GATT_SUCCESS) {
-													//Log.d("BLE", "Write to RECENTRE_UUID initiated successfully.");
-											} else {
-													//Log.d("BLE", "Failed to initiate write to RECENTRE_UUID. Status: " + status);
-											}
-											break;
 									}
 							}
-					}
-					
-					void readIntensity() {
-						if (service != null) {
-							for (BluetoothGattCharacteristic characteristic : characteristics) {
-								UUID characteristicUuid = characteristic.getUuid();
-								if (characteristic != null && characteristicUuid.equals(INTENSITY_UUID)) {
-									System.out.println("INTENSITY_UUID");
-									bluetoothGatt.readCharacteristic(characteristic);
-								}
-							}
-						}
-					}
-					
-				  void readEndurance() {
-						if (service != null) {
-							for (BluetoothGattCharacteristic characteristic : characteristics) {
-								UUID characteristicUuid = characteristic.getUuid();
-								if (characteristic != null && characteristicUuid.equals(ENDURANCE_UUID)) {
-									System.out.println("ENDURANCE_UUID");
-									bluetoothGatt.readCharacteristic(characteristic);
-								}
-							}
-						}
-					}
-					
-					void readLeftBalance() {
-						if (service != null) {
-							for (BluetoothGattCharacteristic characteristic : characteristics) {
-								UUID characteristicUuid = characteristic.getUuid();
-								if (characteristic != null && characteristicUuid.equals(LEFT_BALANCE_UUID)) {
-									System.out.println("LEFT_RIGHT_UUID");
-									bluetoothGatt.readCharacteristic(characteristic);
-								}
-							}
-						}
-					}
-					
-					void readRightBalance() {
-						if (service != null) {
-							for (BluetoothGattCharacteristic characteristic : characteristics) {
-								UUID characteristicUuid = characteristic.getUuid();
-								if (characteristic != null && characteristicUuid.equals(RIGHT_BALANCE_UUID)) {
-									System.out.println("LEFT_RIGHT_UUID");
-									bluetoothGatt.readCharacteristic(characteristic);
-								}
-							}
-						}
-					}
-					
-					void readMaxLeft() {
-						if (service != null) {
-							for (BluetoothGattCharacteristic characteristic : characteristics) {
-								UUID characteristicUuid = characteristic.getUuid();
-								if (characteristic != null && characteristicUuid.equals(MAX_EXTENSION_LEFT_UUID)) {
-									System.out.println("LEFT_MAX_UUID");
-									bluetoothGatt.readCharacteristic(characteristic);
-								}
-							}
-						}
-					}
-          
-
-          
-					void readMaxRight() {
-						if (service != null) {
-							for (BluetoothGattCharacteristic characteristic : characteristics) {
-								UUID characteristicUuid = characteristic.getUuid();
-								if (characteristic != null && characteristicUuid.equals(MAX_EXTENSION_RIGHT_UUID)) {
-									System.out.println("RIGHT_MAX_UUID");
-									bluetoothGatt.readCharacteristic(characteristic);
-								}
-							}
-						}
-					}
-					private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+				
+				
+				private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
 					@Override
 					public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
 						super.onConnectionStateChange(gatt, status, newState);
-						 if (newState == BluetoothProfile.STATE_CONNECTED) {
-							gatt.discoverServices();
-							System.out.println("Connected to GATT server");
-							//Java_ShowToast("Connected to GATT server");
-							nativeBLEConnected(true);
-							nativeBLEReturnDeviceAddress(deviceAddress);
+						if (newState == BluetoothProfile.STATE_CONNECTED) {
+							long connectTime = System.currentTimeMillis();
+							android.util.Log.d("BLE_TIMING", "=== CONNECTED at: " + connectTime + " ===");
+							android.util.Log.d("BLE", "Connected, status: " + status);
 
-						}
-						else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-							System.out.println("Disconnected from GATT server");
-							//Java_ShowToast("Disconnected from GATT server");
-							nativeBLEConnected(false);
-							nativeBLEReturnDeviceAddress("-");
+							bleHandler.postDelayed(new Runnable() {
+								@Override
+								public void run() {
+									if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+										android.util.Log.e("BLE", "Missing BLUETOOTH_CONNECT permission");
+										return;
+									}
+									long priorityTime = System.currentTimeMillis();
+									boolean result = gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
+									android.util.Log.d("BLE_TIMING", "Connection priority requested at: " + priorityTime + " (+" + (priorityTime - connectTime) + "ms from connect)");
+									android.util.Log.d("BLE", "Connection priority result: " + result);
+
+									bleHandler.postDelayed(new Runnable() {
+										@Override
+										public void run() {
+											if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+												android.util.Log.e("BLE", "Missing BLUETOOTH_CONNECT permission");
+												return;
+											}
+											long discoverTime = System.currentTimeMillis();
+											boolean success = gatt.discoverServices();
+											android.util.Log.d("BLE_TIMING", "Service discovery started at: " + discoverTime + " (+" + (discoverTime - connectTime) + "ms from connect)");
+											android.util.Log.d("BLE", "Discovering services: " + success);
+										}
+									}, 100);
+								}
+							}, 100);
+
+						} else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+							android.util.Log.d("BLE_TIMING", "=== DISCONNECTED ===");
+							android.util.Log.d("BLE_TIMING", "Final Stats - Total: " + notificationCount + ", Missed: " + missedNotificationCount);
+							if (notificationCount > 1 && firstNotificationTime > 0) {
+								long totalTime = lastNotificationTime - firstNotificationTime;
+								double avgInterval = (double)totalTime / (notificationCount - 1);
+								android.util.Log.d("BLE_TIMING", String.format("Average interval over session: %.2fms", avgInterval));
+							}
 						}
 					}
 					
-					
-					
-						@Override
-						public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-							super.onServicesDiscovered(gatt, status);
-
-							if (status == BluetoothGatt.GATT_SUCCESS) {
-								service = gatt.getService(MOTUS_EXPLORE_SERVICE_UUID);
-								if (service != null) {
-									characteristics = service.getCharacteristics();
-									for (BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
-										chars.add(characteristic);
-									}
-									System.out.println("CHARACTERISTIC SIZE - " + chars.size());
-									subscribeToCharacteristics(gatt);
-								}
-							}
-							//Java_ShowToast("onServicesDiscovered");
-						}
-					
-					  private void subscribeToCharacteristics(BluetoothGatt gatt) {
-							if(chars.size() == 0) return;
-							BluetoothGattCharacteristic characteristic = chars.get(0);
-							gatt.setCharacteristicNotification(characteristic, true);
-							BluetoothGattDescriptor descriptor = characteristic.getDescriptor(CCC_DESCRIPTOR_UUID);
-							if(descriptor != null) {
-								System.out.println(characteristic.getUuid().toString() + " descriptor!=NULL");
-								descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-								gatt.writeDescriptor(descriptor);
-							}
-							else{
-								System.out.println(characteristic.getUuid().toString() + " descriptor==NULL");
-							}
-						}
-						
-						@Override
-						public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-							//Log.i("DESCRIPTOR", "WROTE DESCRIPTOR FOR CHARACTERISTIC");
-							super.onDescriptorWrite(gatt, descriptor, status);
-							chars.remove(0);
-							subscribeToCharacteristics(gatt);
-						}
-
-				
 					@Override
-					public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-						super.onCharacteristicChanged(gatt, characteristic);
-						if (characteristic.getUuid().equals(INTENSITY_UUID)) {
-							byte[] charactertisicVal = characteristic.getValue();
-							int notificationValue = charactertisicVal[0] & 0xFF;
-							System.out.println("INTENSITY UPDATED " + notificationValue);
-							//Java_ShowToast("INTENSITY UPDATED " + notificationValue);
-							nativeBLEReturnIntensity(notificationValue);
-						}
-						else if (characteristic.getUuid().equals(LEFT_RIGHT_BALANCE_UUID)) {
-							byte[] charactertisicVal = characteristic.getValue();
-							if (charactertisicVal.length >= 2) {
-								int leftBalance = charactertisicVal[0] & 0xFF;
-								int rightBalance = charactertisicVal[1] & 0xFF;
-								System.out.println("HELLO LEFT/RIGHT UPDATED - LEFT " + leftBalance);
-								System.out.println("HELLO LEFT/RIGHT UPDATED - RIGHT " + rightBalance);
-								//nativeBLEReturnLeftRightBalance(charactertisicVal); - this needs updating
-							}
-							else{
-								System.out.println("HELLO LEFT/RIGHT BUT TOO SMALL");
-							}
-						}
-						else if (characteristic.getUuid().equals(ENDURANCE_UUID)) {
-							byte[] charactertisicVal = characteristic.getValue();
-							int notificationValue = charactertisicVal[0] & 0xFF;
-							System.out.println("ENDURANCE UPDATED " + notificationValue);
-							//Java_ShowToast("ENDURANCE UPDATED " + notificationValue);
-							nativeBLEReturnEndurance(notificationValue);
-						}
-						else if (characteristic.getUuid().equals(LEFT_BALANCE_UUID)) {
-						    byte[] charactertisicVal = characteristic.getValue();
-							int notificationValue = charactertisicVal[0] & 0xFF;
-							System.out.println("LEFT BALANCE UPDATED " + notificationValue);
-							//Java_ShowToast("LEFT BALANCE UPDATED " + notificationValue);
-							nativeBLEReturnLeftBalance(notificationValue);
+					public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+						super.onServicesDiscovered(gatt, status);
+						long discoveredTime = System.currentTimeMillis();
+						android.util.Log.d("BLE_TIMING", "Services discovered callback at: " + discoveredTime);
+						android.util.Log.d("BLE", "Services discovered, status: " + status);
 
+						if (status == BluetoothGatt.GATT_SUCCESS) {
+							service = gatt.getService(MOTUS_EXPLORE_SERVICE_UUID);
+
+							if (service != null) {
+								android.util.Log.d("BLE", "MOTUS service found");
+								characteristics = service.getCharacteristics();
+								bleHandler.postDelayed(new Runnable() {
+									@Override
+									public void run() {
+										long subscribeTime = System.currentTimeMillis();
+										android.util.Log.d("BLE_TIMING", "Starting subscription at: " + subscribeTime + " (+" + (subscribeTime - discoveredTime) + "ms from discovery)");
+										subscribeToCharacteristics(gatt);
+									}
+								}, 200);
+							} else {
+								android.util.Log.e("BLE", "MOTUS service NOT found!");
+							}
+						} else {
+							android.util.Log.e("BLE", "Service discovery failed with status: " + status);
 						}
-						else if (characteristic.getUuid().equals(RIGHT_BALANCE_UUID)) {
-							byte[] charactertisicVal = characteristic.getValue();
-							int notificationValue = charactertisicVal[0] & 0xFF;
-							System.out.println("RIGHT BALANCE UPDATED " + notificationValue);
-							//Java_ShowToast("RIGHT BALANCE UPDATED " + notificationValue);
-							nativeBLEReturnRightBalance(notificationValue);
+					}
+					
+					@Override
+					public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+						super.onDescriptorWrite(gatt, descriptor, status);
+						long descriptorTime = System.currentTimeMillis();
+						if (status == BluetoothGatt.GATT_SUCCESS) {
+							android.util.Log.d("BLE_TIMING", "=== NOTIFICATIONS ENABLED at: " + descriptorTime + " ===");
+							android.util.Log.d("BLE", "Notifications enabled successfully!");
+						} else {
+							android.util.Log.e("BLE_TIMING", "Failed to enable notifications at: " + descriptorTime);
+							android.util.Log.e("BLE", "Failed to enable notifications, status: " + status);
 						}
-						else if (characteristic.getUuid().equals(MAX_EXTENSION_LEFT_UUID)) {
-							byte[] charactertisicVal = characteristic.getValue();
-							int notificationValue = charactertisicVal[0] & 0xFF;
-							System.out.println("MAX LEFT UPDATED " + notificationValue);
-							//Java_ShowToast("MAX LEFT UPDATED " + notificationValue);
-							nativeBLEReturnMaxLeft(notificationValue);
+					}
+
+					@Override
+					public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value) {
+						super.onCharacteristicChanged(gatt, characteristic, value);
+						notificationCount++;
+						long currentTime = System.currentTimeMillis();
+
+						if (notificationCount == 1) {
+							firstNotificationTime = currentTime;
+							android.util.Log.d("BLE_TIMING", "=== FIRST NOTIFICATION RECEIVED ===");
+							android.util.Log.d("BLE_TIMING", "Notification #1 at: " + currentTime);
+						} else {
+							long interval = currentTime - lastNotificationTime;
+
+							android.util.Log.d("BLE_TIMING", String.format("Notification #%d | Interval: %dms | Time: %d",
+									notificationCount, interval, currentTime));
+
+							if (interval > 6000) {
+								missedNotificationCount++;
+								android.util.Log.w("BLE_TIMING", "⚠️ MISSED NOTIFICATION! Gap: " + interval + "ms (expected ~5000ms)");
+							} else if (interval < 4500 || interval > 5500) {
+								android.util.Log.w("BLE_TIMING", "⚠️ IRREGULAR INTERVAL: " + interval + "ms (expected 4500-5500ms)");
+							}
 						}
-						else if (characteristic.getUuid().equals(MAX_EXTENSION_RIGHT_UUID)) {
-							byte[] charactertisicVal = characteristic.getValue();
-							int notificationValue = charactertisicVal[0] & 0xFF;
-							System.out.println("MAX RIGHT UPDATED " + notificationValue);
-							//Java_ShowToast("MAX RIGHT UPDATED " + notificationValue);
-							nativeBLEReturnMaxRight(notificationValue);
+
+						lastNotificationTime = currentTime;
+
+						if (notificationCount % 10 == 0) {
+							long totalTime = currentTime - firstNotificationTime;
+							double avgInterval = notificationCount > 1 ? (double)totalTime / (notificationCount - 1) : 0;
+							android.util.Log.d("BLE_TIMING", "========================================");
+							android.util.Log.d("BLE_TIMING", String.format("SUMMARY: Total=%d | Missed=%d | Avg Interval=%.1fms",
+									notificationCount, missedNotificationCount, avgInterval));
+							android.util.Log.d("BLE_TIMING", "========================================");
 						}
-						}
-					};		
-				}
-		
-		public static boolean isConnected(BluetoothDevice device) {
-			try {
-				Method m = device.getClass().getMethod("isConnected", (Class[]) null);
-				boolean connected = (boolean) m.invoke(device, (Object[]) null);
-				return connected;
-			} catch (Exception e) {
-				throw new IllegalStateException(e);
+					}
+				};
 			}
-		}
-		
-		
-		void Java_SendCentre(){
-			bleManager.sendRecentreCharacteristic();
-		}
-	
-    boolean Java_ConnectToBLEService() {
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+			
+			public static boolean isConnected(BluetoothDevice device) {
+				try {
+					Method m = device.getClass().getMethod("isConnected", (Class[]) null);
+					boolean connected = (boolean) m.invoke(device, (Object[]) null);
+					return connected;
+				} catch (Exception e) {
+					throw new IllegalStateException(e);
+				}
+			}
+			
+			void Java_SendCentre(){
+			
+				bleManager.sendRecentreCharacteristic();
+			}
 
-        if (bluetoothAdapter == null) {
-            System.out.println("BLE: bluetoothAdapter == null");
-            return false;
-        } else if (!bluetoothAdapter.isEnabled()) {
-            System.out.println("BLE: !bluetoothAdapter.isEnabled()");
-            return false;
-        }
-        else {
-            for (BluetoothDevice device : pairedDevices) {
-                String deviceName = device.getName();
-                if (deviceName.startsWith("MotusVR") && isConnected(device)) {
-                    deviceAddress = device.getAddress();
-                    System.out.println("BLE: Motus Device Connected with address: " + deviceAddress);
-                    Activity activity = (Activity) this;
-                    bleManager = new BLEManager(this, activity);
-                    if(bleManager.connectToDevice(deviceAddress)){
-                        System.out.println("BLE: Motus BLE Connected");
-                        return true;
-                    }else{
-                        System.out.println("BLE: Motus BLE NOT!");
-                        return false;
-                        }
-                    }
-                    else if (deviceName.startsWith("MotusVR")) {
-                        System.out.println("BLE: Motus BLE PAIRED BUT NOT CONNECTED!");
-                    }
-                    else{
-                        System.out.println("BLE: BLE DEVICE PAIRED - IGNORE");
-                        return false;
-                }
-            }
-        }
-        return false;
-    }
-    
-
-    
-    
-
-
-
+			boolean Java_ConnectToBLEService() {
+				BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+				
+				if (bluetoothAdapter == null) {
+					System.out.println("BLE: bluetoothAdapter == null");
+					return false;
+				} else if (!bluetoothAdapter.isEnabled()) {
+					System.out.println("BLE: !bluetoothAdapter.isEnabled()");
+					return false;
+				}
+				
+				Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+				System.out.println("BLE: " + pairedDevices.size() + " paired devices");
+				
+				for (BluetoothDevice device : pairedDevices) {
+					String deviceName = device.getName();
+					System.out.println("BLE: " + deviceName);
+					
+					if (deviceName != null && deviceName.startsWith("MotusVR")) {
+						System.out.println("BLE: MotusVR device found");
+						
+						if (isConnected(device)) {
+							deviceAddress = device.getAddress();
+							System.out.println("BLE: Motus Device Connected with address: " + deviceAddress);
+							
+							Activity activity = (Activity) this;
+							bleManager = new BLEManager(this, activity);
+							
+							if (bleManager.connectToDevice(deviceAddress)) {
+								System.out.println("BLE: Motus BLE Connected");
+								return true;
+							} else {
+								System.out.println("BLE: Motus BLE connection failed");
+								return false;
+							}
+						} else {
+							System.out.println("BLE: MotusVR device paired but not connected");
+						}
+					}
+				}
+				
+				System.out.println("BLE: No connected MotusVR device found");
+				return false;
+			}
+   
 		]]>
 		</insert>
 	</gameActivityClassAdditions>
