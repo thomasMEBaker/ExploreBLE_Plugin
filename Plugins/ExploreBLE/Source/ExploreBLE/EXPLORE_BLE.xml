@@ -128,9 +128,6 @@ dependencies {
 			private BLEManager bleManager;
 			String deviceAddress;
 			
-			private Handler bleHandler;
-
-
 			public void Java_ShowToast(final String toast) {
 			runOnUiThread(new Runnable() {
 				public void run() {
@@ -148,7 +145,7 @@ dependencies {
 				private List<BluetoothGattCharacteristic> characteristics;
 				private Context context;
 				private Activity activity;
-				private Handler bleHandler;
+				private Handler bleHandler = new Handler(Looper.getMainLooper());
 
 				// Timing and notification tracking variables
 				private int notificationCount = 0;
@@ -402,7 +399,7 @@ dependencies {
 
 
                     String[] parts = dataValue.split(",");
-
+/*
                     intensity_value = parts[0];
                     endurance_value = parts[1];
                     max_extension_left_value = parts[2];
@@ -414,6 +411,18 @@ dependencies {
                     split_time_value = parts[8];
 					distance_value = parts[9];
 					left_right_balance_value = left_balance_value + "/" + right_balance_value;
+	*/				
+					intensity_value = 1;
+                    endurance_value = 2;
+                    max_extension_left_value = 3;
+                    max_flexion_left_value = 4;
+                    max_extension_right_value = 5;
+                    max_flexion_right_value = 6;
+                    left_balance_value = 7;
+					right_balance_value = 8;
+                    split_time_value = 9;
+					distance_value = 10;
+					left_right_balance_value = "11/12"
 
 					nativeBLEReturnFeetData(intensity_value,endurance_value,max_extension_left_value,max_flexion_left_value,max_extension_right_value,max_flexion_right_value,left_right_balance_value,split_time_value,distance_value);
 							}
@@ -544,12 +553,20 @@ dependencies {
 			if (device == null) {
 				return false;
 			}
+			    if (ActivityCompat.checkSelfPermission(this, 
+					android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+					android.util.Log.e("BLE", "Missing BLUETOOTH_CONNECT permission in isConnected");
+					return false;
+				}
+			
 			BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
 			if (bluetoothManager == null) {
 				return false;
 			}
-			int connectionState = bluetoothManager.getConnectionState(device, BluetoothProfile.GATT);
-			return connectionState == BluetoothProfile.STATE_CONNECTED;
+			
+			boolean bonded = device.getBondState() == BluetoothDevice.BOND_BONDED;
+			android.util.Log.d("BLE", "Device bond state: " + device.getBondState());
+			return bonded;
 		}
 	
     boolean Java_ConnectToBLEService() {
@@ -564,7 +581,6 @@ dependencies {
         }
         else {
 			Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-			
             for (BluetoothDevice device : pairedDevices) {
                 String deviceName = device.getName();
                 System.out.println("BLE:" + deviceName);

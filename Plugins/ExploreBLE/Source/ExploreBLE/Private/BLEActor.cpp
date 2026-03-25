@@ -149,7 +149,6 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 		FString distanceStr = UTF8_TO_TCHAR(distance_stdStr.c_str());
 
 
-		/*
 				if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, intensityStr);
@@ -160,7 +159,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Magenta, flexionRightStr);
 			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Orange, leftRightBalanceStr);
 		}
-		*/
+		
 
 		Char_Array.Add(intensityStr);
 		Char_Array.Add(enduranceStr);
