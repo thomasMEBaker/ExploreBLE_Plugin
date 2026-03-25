@@ -564,17 +564,16 @@ dependencies {
 			if (device == null) {
 				return false;
 			}
-			    if (ActivityCompat.checkSelfPermission(this, 
+			
+			// BLUETOOTH_CONNECT permission only exists on Android 12+
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+				if (ActivityCompat.checkSelfPermission(this,
 					android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
 					android.util.Log.e("BLE", "Missing BLUETOOTH_CONNECT permission in isConnected");
 					return false;
 				}
-			
-			BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-			if (bluetoothManager == null) {
-				return false;
 			}
-			
+						
 			boolean bonded = device.getBondState() == BluetoothDevice.BOND_BONDED;
 			android.util.Log.d("BLE", "Device bond state: " + device.getBondState());
 			return bonded;
