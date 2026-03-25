@@ -399,7 +399,7 @@ dependencies {
 
 
                     String[] parts = dataValue.split(",");
-/*
+
                     intensity_value = parts[0];
                     endurance_value = parts[1];
                     max_extension_left_value = parts[2];
@@ -410,30 +410,12 @@ dependencies {
 					right_balance_value = parts[7];
                     split_time_value = parts[8];
 					distance_value = parts[9];
-					left_right_balance_value = left_balance_value + "/" + right_balance_value;
-	*/				
-					intensity_value = 1;
-                    endurance_value = 2;
-                    max_extension_left_value = 3;
-                    max_flexion_left_value = 4;
-                    max_extension_right_value = 5;
-                    max_flexion_right_value = 6;
-                    left_balance_value = 7;
-					right_balance_value = 8;
-                    split_time_value = 9;
-					distance_value = 10;
-					left_right_balance_value = "11/12"
-
+					left_right_balance_value = left_balance_value + "/" + right_balance_value;		
+	
 					nativeBLEReturnFeetData(intensity_value,endurance_value,max_extension_left_value,max_flexion_left_value,max_extension_right_value,max_flexion_right_value,left_right_balance_value,split_time_value,distance_value);
 							}
 						}
 					}
-		
-		
-		
-		
-		
-        
 
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -476,7 +458,35 @@ dependencies {
                 }
             }
         }
+		
+		@Override
+		public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+			super.onServicesDiscovered(gatt, status);
+			android.util.Log.d("BLE", "Services discovered, status: " + status);
 
+			if (status == BluetoothGatt.GATT_SUCCESS) {
+        
+				// Print ALL discovered services and their characteristics
+				for (BluetoothGattService discoveredService : gatt.getServices()) {
+					android.util.Log.d("BLE", "Service found: " + discoveredService.getUuid().toString());
+					for (BluetoothGattCharacteristic c : discoveredService.getCharacteristics()) {
+						android.util.Log.d("BLE", "    Characteristic: " + c.getUuid().toString());
+					}
+				}
+
+				service = gatt.getService(MOTUS_EXPLORE_SERVICE_UUID);
+				if (service != null) {
+					android.util.Log.d("BLE", "MOTUS service found");
+					System.out.println("MOTUS service found");
+					characteristics = service.getCharacteristics();
+					subscribeToCharacteristics(gatt);
+				} else {
+					android.util.Log.e("BLE", "MOTUS service NOT found - check UUID");
+				}
+			}
+		}
+
+/*
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             super.onServicesDiscovered(gatt, status);
@@ -508,6 +518,7 @@ dependencies {
                 android.util.Log.e("BLE", "Service discovery failed with status: " + status);
             }
         }
+		*/
 
         @Override
         public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {

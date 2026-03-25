@@ -148,16 +148,16 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 		FString splitTimeStr = UTF8_TO_TCHAR(split_time_stdStr.c_str());
 		FString distanceStr = UTF8_TO_TCHAR(distance_stdStr.c_str());
 
-
-				if (GEngine)
+		
+		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, intensityStr);
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, enduranceStr);
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, extensionLeftStr);
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, flexionLeftStr);
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, extensionRightStr);
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Magenta, flexionRightStr);
-			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Orange, leftRightBalanceStr);
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, intensityStr);
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, enduranceStr);
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Blue, extensionLeftStr);
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, flexionLeftStr);
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Cyan, extensionRightStr);
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Magenta, flexionRightStr);
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Orange, leftRightBalanceStr);
 		}
 		
 
