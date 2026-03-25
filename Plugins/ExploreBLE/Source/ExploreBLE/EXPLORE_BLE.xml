@@ -89,20 +89,22 @@ dependencies {
 			import android.bluetooth.BluetoothManager;
 			import android.bluetooth.BluetoothProfile;
 			import android.content.Context;
-			import java.util.ArrayList;
-			import java.util.List;
-			import java.util.UUID;
-			import java.util.Set;
-			import java.lang.reflect.Method;
-			import android.app.Activity;
-			import android.widget.TextView;
-			import android.os.Build;
+			import android.content.pm.PackageManager;
 			import android.os.Handler;
 			import android.os.Looper;
+			import android.os.Build;
 			import android.util.Log;
+			import android.app.Activity;
 			import androidx.core.app.ActivityCompat;
-			import android.content.pm.PackageManager;
+			import java.util.ArrayList;
+			import java.util.List;
+			import java.util.Set;
+			import java.util.UUID;
 			import static android.bluetooth.BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT;
+			import java.nio.charset.StandardCharsets;
+
+
+
 		</insert>
 	</gameActivityImportAdditions>
 
@@ -121,313 +123,472 @@ dependencies {
 			private native void nativeBLEReturnRightBalance(int rightBalance);
 			private native void nativeBLEReturnMaxLeft(int maxLeft);
 			private native void nativeBLEReturnMaxRight(int maxRight);
+			private native void nativeBLEReturnFeetData(String intensity, String endurance, String extension_left_value, String flexion_left_value,String extension_right_value, String flexion_right_value, String balance_value, String split_time, String distance);
 			
-	
 			private BLEManager bleManager;
 			String deviceAddress;
 			
 			private Handler bleHandler;
-			private int notificationCount = 0;
-			private int missedNotificationCount = 0;
-			private long firstNotificationTime = 0;
-			private long lastNotificationTime = 0;
-			
+
+
 			public void Java_ShowToast(final String toast) {
-				runOnUiThread(new Runnable() {
-					public void run() {
-						CharSequence cs = toast;
-						Toast.makeText(getApplicationContext(), cs, Toast.LENGTH_LONG).show();
+			runOnUiThread(new Runnable() {
+				public void run() {
+					CharSequence cs = toast;
+					Toast.makeText(getApplicationContext(), cs, Toast.LENGTH_LONG).show();
 					}
 				});
 			}
 			
 			public class BLEManager {
-				private BluetoothAdapter bluetoothAdapter;
+			    private BluetoothAdapter bluetoothAdapter;
 				private BluetoothGatt bluetoothGatt;
 				private BluetoothGattService service;
 
 				private List<BluetoothGattCharacteristic> characteristics;
 				private Context context;
 				private Activity activity;
-				private TextView [] textBoxes;
+				private Handler bleHandler;
 
-				String str = null;
-				int dataValue = 0;
+				// Timing and notification tracking variables
+				private int notificationCount = 0;
+				private int missedNotificationCount = 0;
+				private long firstNotificationTime = 0;
+				private long lastNotificationTime = 0;
+				
+				String feet_data_value = "";
 				
 				private UUID MOTUS_EXPLORE_SERVICE_UUID = UUID.fromString("9c9d4aa7-8050-4c8a-bc67-146a66d0443e");
 				private UUID INTENSITY_UUID = UUID.fromString("9c9d4aa7-8051-4c8a-bc67-146a66d0443e");
 				private UUID ENDURANCE_UUID = UUID.fromString("9c9d4aa7-8052-4c8a-bc67-146a66d0443e");
-				private UUID LEFT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8053-4c8a-bc67-146a66d0443e");
-				private UUID RIGHT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8054-4c8a-bc67-146a66d0443e");
-				private UUID MAX_EXTENSION_LEFT_UUID = UUID.fromString("9c9d4aa7-8055-4c8a-bc67-146a66d0443e");
-				private UUID MAX_EXTENSION_RIGHT_UUID = UUID.fromString("9c9d4aa7-8056-4c8a-bc67-146a66d0443e");
+				private UUID MAX_EXTENSION_LEFT_UUID = UUID.fromString("9c9d4aa7-8053-4c8a-bc67-146a66d0443e");
+				private UUID MAX_FLEXION_LEFT_UUID = UUID.fromString("9c9d4aa7-8054-4c8a-bc67-146a66d0443e");
+				private UUID MAX_EXTENSION_RIGHT_UUID = UUID.fromString("9c9d4aa7-8055-4c8a-bc67-146a66d0443e");
+				private UUID MAX_FLEXION_RIGHT_UUID = UUID.fromString("9c9d4aa7-8056-4c8a-bc67-146a66d0443e");
 				private UUID LEFT_RIGHT_BALANCE_UUID = UUID.fromString("9c9d4aa7-8057-4c8a-bc67-146a66d0443e");
-				private UUID CCC_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
 				private UUID RECENTRE_UUID = UUID.fromString("9c9d4aa7-8058-4c8a-bc67-146a66d0443e");
 				private UUID FEET_DATA_UUID = UUID.fromString("9c9d4aa7-8059-4c8a-bc67-146a66d0443e");
-				
-				List<BluetoothGattCharacteristic> chars = new ArrayList<>();
+				private UUID BOARD_RESET_UUID = UUID.fromString("9c9d4aa7-8060-4c8a-bc67-146a66d0443e");
+				private UUID CCC_DESCRIPTOR_UUID = UUID.fromString("00002902-0000-1000-8000-00805F9B34FB");
+
+				String intensity_value = "";
+				String endurance_value = "";
+				String max_extension_left_value = "";
+				String max_flexion_left_value = "";
+				String max_extension_right_value = "";
+				String max_flexion_right_value = "";
+
+				String left_balance_value = "";
+				String right_balance_value = "";
+				String left_right_balance_value = "";
+				String split_time_value = "";
+				String distance_value = "";
 
 				public BLEManager(Context context, Activity act) {
 					this.context = context;
 					this.activity = act;
-					this.bleHandler = new Handler(Looper.getMainLooper());
-
+					this.characteristics = new ArrayList<>();
+					
 					BluetoothManager bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 					if (bluetoothManager != null) {
 						bluetoothAdapter = bluetoothManager.getAdapter();
+						System.out.println("BLE bluetoothManager != null");
+						}
 					}
-				}
-				
-				public boolean connectToDevice(String deviceAddress) {
-					BluetoothAdapter myAdapter;
-					BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
-					bluetoothGatt = device.connectGatt(context, true, gattCallback);
-					return true;
-				}
-				
-				private void subscribeToCharacteristics(BluetoothGatt gatt) {
-					if (service == null) return;
-
-					BluetoothGattCharacteristic feetDataChar = service.getCharacteristic(FEET_DATA_UUID);
-					if (feetDataChar != null) {
-						boolean success = gatt.setCharacteristicNotification(feetDataChar, true);
-						android.util.Log.d("BLE", "setCharacteristicNotification: " + success);
-
-						bleHandler.postDelayed(new Runnable() {
-							@Override
-							public void run() {
-								BluetoothGattDescriptor descriptor = feetDataChar.getDescriptor(CCC_DESCRIPTOR_UUID);
-								if (descriptor != null) {
-									if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-										gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-									} else {
-										descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-										gatt.writeDescriptor(descriptor);
-									}
-									android.util.Log.d("BLE_TIMING", "Writing descriptor at: " + System.currentTimeMillis());
+					
+					public boolean connectToDevice(String deviceAddress) {
+						if (bluetoothAdapter == null) {
+							android.util.Log.e("BLE", "BluetoothAdapter is null");
+							return false;
+						}
+						BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
+						bluetoothGatt = device.connectGatt(context, false, gattCallback,BluetoothDevice.TRANSPORT_LE);
+						System.out.println("BLE connectToDevice");
+						
+						notificationCount = 0;
+						lastNotificationTime = 0;
+						firstNotificationTime = 0;
+						missedNotificationCount = 0;
+						
+						return true;
+					}
+					
+							void readFeetData(){
+						if (service != null) {
+							for (BluetoothGattCharacteristic characteristic : characteristics) {
+								UUID characteristicUuid = characteristic.getUuid();
+								if (characteristic != null && characteristicUuid.equals(FEET_DATA_UUID)) {
+									System.out.println("FEET DATA READ");
+									bluetoothGatt.readCharacteristic(characteristic);
 								}
 							}
-						}, 100);
+						}
 					}
-				}
-				
-				    void sendRecentreCharacteristic() {
-						for (BluetoothGattCharacteristic characteristic : characteristics) {
-									UUID characteristicUuid = characteristic.getUuid();
-									if (characteristic != null && characteristicUuid.equals(RECENTRE_UUID)) {
-													// true is represented as 0x01, false as 0x00)
-													byte[] value = new byte[1];
-													value[0] = 0x01;
-													characteristic.setValue(value);
+					
+					 void sendResetBoardCharacteristic() {
+					 if (characteristics == null || characteristics.isEmpty()) {
+						 android.util.Log.e("BLE", "Characteristics list is null or empty");
+						 return;
+					 }
+					 for (BluetoothGattCharacteristic characteristic : characteristics) {
+							UUID characteristicUuid = characteristic.getUuid();
+							if (characteristic != null && characteristicUuid.equals(BOARD_RESET_UUID)) {
+								 // true is represented as 0x01, false as 0x00)
+														byte[] value = new byte[1];
+														value[0] = 0x01;
+														characteristic.setValue(value);
 
-													int writeType = WRITE_TYPE_DEFAULT;
-													boolean status = bluetoothGatt.writeCharacteristic(characteristic);
+														int writeType = WRITE_TYPE_DEFAULT;
+														
 
-													int properties = characteristic.getProperties();
-													if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
-															//Log.e("BLE", "Characteristic does not support writing.");
-													}
+														boolean writeSuccess = bluetoothGatt.writeCharacteristic(characteristic);
 
-													if (status == true) {
-															//Log.d("BLE", "Write to RECENTRE_UUID initiated successfully.");
-													} else {
-															//Log.d("BLE", "Failed to initiate write to RECENTRE_UUID. Status: " + status);
-													}
-													break;
-											}
-									}
-							}
-				
-				
-				private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
-					@Override
-					public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-						super.onConnectionStateChange(gatt, status, newState);
-						if (newState == BluetoothProfile.STATE_CONNECTED) {
-							long connectTime = System.currentTimeMillis();
-							android.util.Log.d("BLE_TIMING", "=== CONNECTED at: " + connectTime + " ===");
-							android.util.Log.d("BLE", "Connected, status: " + status);
+														int properties = characteristic.getProperties();
+														if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
+																android.util.Log.e("BLE", "Characteristic does not support writing.");
+														}
 
-							bleHandler.postDelayed(new Runnable() {
-								@Override
-								public void run() {
-									if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-										android.util.Log.e("BLE", "Missing BLUETOOTH_CONNECT permission");
-										return;
-									}
-									long priorityTime = System.currentTimeMillis();
-									boolean result = gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
-									android.util.Log.d("BLE_TIMING", "Connection priority requested at: " + priorityTime + " (+" + (priorityTime - connectTime) + "ms from connect)");
-									android.util.Log.d("BLE", "Connection priority result: " + result);
-
-									bleHandler.postDelayed(new Runnable() {
-										@Override
-										public void run() {
-											if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-												android.util.Log.e("BLE", "Missing BLUETOOTH_CONNECT permission");
-												return;
-											}
-											long discoverTime = System.currentTimeMillis();
-											boolean success = gatt.discoverServices();
-											android.util.Log.d("BLE_TIMING", "Service discovery started at: " + discoverTime + " (+" + (discoverTime - connectTime) + "ms from connect)");
-											android.util.Log.d("BLE", "Discovering services: " + success);
+														if (writeSuccess == true) {
+																android.util.Log.d("BLE", "Write to BOARD_RESET_UUID initiated successfully.");
+														} else {
+																android.util.Log.d("BLE", "Failed to initiate write to BOARD_RESET_UUID. Status: " + writeSuccess);
+														}
+														break;
+												}
 										}
-									}, 100);
-								}
-							}, 100);
-
-						} else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-							android.util.Log.d("BLE_TIMING", "=== DISCONNECTED ===");
-							android.util.Log.d("BLE_TIMING", "Final Stats - Total: " + notificationCount + ", Missed: " + missedNotificationCount);
-							if (notificationCount > 1 && firstNotificationTime > 0) {
-								long totalTime = lastNotificationTime - firstNotificationTime;
-								double avgInterval = (double)totalTime / (notificationCount - 1);
-								android.util.Log.d("BLE_TIMING", String.format("Average interval over session: %.2fms", avgInterval));
-							}
-						}
-					}
+					 }
+					 
 					
-					@Override
-					public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-						super.onServicesDiscovered(gatt, status);
-						long discoveredTime = System.currentTimeMillis();
-						android.util.Log.d("BLE_TIMING", "Services discovered callback at: " + discoveredTime);
-						android.util.Log.d("BLE", "Services discovered, status: " + status);
+					
+					    void sendRecentreCharacteristic() {
+						if (characteristics == null || characteristics.isEmpty()) {
+							android.util.Log.e("BLE", "Characteristics list is null or empty");
+							return;
+						}
+				for (BluetoothGattCharacteristic characteristic : characteristics) {
+							UUID characteristicUuid = characteristic.getUuid();
+							if (characteristic != null && characteristicUuid.equals(RECENTRE_UUID)) {
+											// true is represented as 0x01, false as 0x00)
+											byte[] value = new byte[1];
+											value[0] = 0x01;
+											characteristic.setValue(value);
 
-						if (status == BluetoothGatt.GATT_SUCCESS) {
-							service = gatt.getService(MOTUS_EXPLORE_SERVICE_UUID);
+											int writeType = WRITE_TYPE_DEFAULT;
+											
+				
+											
+											boolean status = bluetoothGatt.writeCharacteristic(characteristic);
 
-							if (service != null) {
-								android.util.Log.d("BLE", "MOTUS service found");
-								characteristics = service.getCharacteristics();
-								bleHandler.postDelayed(new Runnable() {
-									@Override
-									public void run() {
-										long subscribeTime = System.currentTimeMillis();
-										android.util.Log.d("BLE_TIMING", "Starting subscription at: " + subscribeTime + " (+" + (subscribeTime - discoveredTime) + "ms from discovery)");
-										subscribeToCharacteristics(gatt);
+											int properties = characteristic.getProperties();
+											if ((properties & BluetoothGattCharacteristic.PROPERTY_WRITE) == 0) {
+													android.util.Log.e("BLE", "Characteristic does not support writing.");
+											}
+
+											if (status == true) {
+													android.util.Log.d("BLE", "Write to RECENTRE_UUID initiated successfully.");
+											} else {
+													android.util.Log.d("BLE", "Failed to initiate write to RECENTRE_UUID. Status: " + status);
+											}
+											break;
 									}
-								}, 200);
-							} else {
-								android.util.Log.e("BLE", "MOTUS service NOT found!");
 							}
-						} else {
-							android.util.Log.e("BLE", "Service discovery failed with status: " + status);
-						}
 					}
 					
-					@Override
-					public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
-						super.onDescriptorWrite(gatt, descriptor, status);
-						long descriptorTime = System.currentTimeMillis();
-						if (status == BluetoothGatt.GATT_SUCCESS) {
-							android.util.Log.d("BLE_TIMING", "=== NOTIFICATIONS ENABLED at: " + descriptorTime + " ===");
-							android.util.Log.d("BLE", "Notifications enabled successfully!");
-						} else {
-							android.util.Log.e("BLE_TIMING", "Failed to enable notifications at: " + descriptorTime);
-							android.util.Log.e("BLE", "Failed to enable notifications, status: " + status);
-						}
-					}
 
-					@Override
-					public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value) {
-						super.onCharacteristicChanged(gatt, characteristic, value);
-						notificationCount++;
-						long currentTime = System.currentTimeMillis();
+    private void subscribeToCharacteristics(BluetoothGatt gatt) {
+        if (service == null) return;
 
-						if (notificationCount == 1) {
-							firstNotificationTime = currentTime;
-							android.util.Log.d("BLE_TIMING", "=== FIRST NOTIFICATION RECEIVED ===");
-							android.util.Log.d("BLE_TIMING", "Notification #1 at: " + currentTime);
-						} else {
-							long interval = currentTime - lastNotificationTime;
+        BluetoothGattCharacteristic feetDataChar = service.getCharacteristic(FEET_DATA_UUID);
+        if (feetDataChar != null) {
+            boolean success = gatt.setCharacteristicNotification(feetDataChar, true);
+            android.util.Log.d("BLE", "setCharacteristicNotification: " + success);
 
-							android.util.Log.d("BLE_TIMING", String.format("Notification #%d | Interval: %dms | Time: %d",
-									notificationCount, interval, currentTime));
+            bleHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    BluetoothGattDescriptor descriptor = feetDataChar.getDescriptor(CCC_DESCRIPTOR_UUID);
+                    if (descriptor != null) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                        } else {
+                            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                            gatt.writeDescriptor(descriptor);
+                        }
+                        android.util.Log.d("BLE_TIMING", "Writing descriptor at: " + System.currentTimeMillis());
+                    }
+                }
+            }, 100);
+        }
+    }
+	
 
-							if (interval > 6000) {
-								missedNotificationCount++;
-								android.util.Log.w("BLE_TIMING", "⚠️ MISSED NOTIFICATION! Gap: " + interval + "ms (expected ~5000ms)");
-							} else if (interval < 4500 || interval > 5500) {
-								android.util.Log.w("BLE_TIMING", "⚠️ IRREGULAR INTERVAL: " + interval + "ms (expected 4500-5500ms)");
+
+					private final BluetoothGattCallback gattCallback = new BluetoothGattCallback() {
+					
+						   // For Android 13+ (API 33+)
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, byte[] value) {
+            super.onCharacteristicChanged(gatt, characteristic, value);
+
+            notificationCount++;
+            long currentTime = System.currentTimeMillis();
+
+            if (notificationCount == 1) {
+                firstNotificationTime = currentTime;
+                android.util.Log.d("BLE_TIMING", "=== FIRST NOTIFICATION RECEIVED ===");
+                android.util.Log.d("BLE_TIMING", "Notification #1 at: " + currentTime);
+            } else {
+                long interval = currentTime - lastNotificationTime;
+
+                android.util.Log.d("BLE_TIMING", String.format("Notification #%d | Interval: %dms | Time: %d",
+                        notificationCount, interval, currentTime));
+
+                if (interval > 6000) {
+                    missedNotificationCount++;
+                    android.util.Log.w("BLE_TIMING", "⚠️ MISSED NOTIFICATION! Gap: " + interval + "ms (expected ~5000ms)");
+                } else if (interval < 4500 || interval > 5500) {
+                    android.util.Log.w("BLE_TIMING", "⚠️ IRREGULAR INTERVAL: " + interval + "ms (expected 4500-5500ms)");
+                }
+            }
+
+            lastNotificationTime = currentTime;
+
+            if (notificationCount % 10 == 0) {
+                long totalTime = currentTime - firstNotificationTime;
+                double avgInterval = notificationCount > 1 ? (double)totalTime / (notificationCount - 1) : 0;
+                android.util.Log.d("BLE_TIMING", "========================================");
+                android.util.Log.d("BLE_TIMING", String.format("SUMMARY: Total=%d | Missed=%d | Avg Interval=%.1fms",
+                        notificationCount, missedNotificationCount, avgInterval));
+                android.util.Log.d("BLE_TIMING", "========================================");
+            }
+            
+            // Parse the received data
+            if (characteristic.getUuid().equals(FEET_DATA_UUID)) {
+				System.out.println("BLE: FEET DATA changed");
+				byte[] charactertisicVal = characteristic.getValue();
+				String notificationValue = new String(charactertisicVal,StandardCharsets.UTF_8);
+				readFeetData();							
+			}
+        }
+		
+		 @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt,
+                                            BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
+            System.out.println("Notification landed!");
+            // Parse the received data
+            if (characteristic.getUuid().equals(FEET_DATA_UUID)) {
+				System.out.println("BLE: FEET DATA changed");
+				byte[] charactertisicVal = characteristic.getValue();
+				String notificationValue = new String(charactertisicVal,StandardCharsets.UTF_8);
+				readFeetData();							
+			}
+        }
+		
+		
+									@Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicRead(gatt, characteristic, status);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                if(characteristic.getUuid().equals(FEET_DATA_UUID)){
+                    byte[] data = characteristic.getValue();
+                    String dataValue = new String(data, StandardCharsets.UTF_8);
+
+                    activity.runOnUiThread(new Runnable() {
+                        public void run() {
+                            Toast.makeText(context, "Feet Tracking Data Changed to " + dataValue, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+
+
+                    String[] parts = dataValue.split(",");
+
+                    intensity_value = parts[0];
+                    endurance_value = parts[1];
+                    max_extension_left_value = parts[2];
+                    max_flexion_left_value = parts[3];
+                    max_extension_right_value = parts[4];
+                    max_flexion_right_value = parts[5];
+                    left_balance_value = parts[6];
+					right_balance_value = parts[7];
+                    split_time_value = parts[8];
+					distance_value = parts[9];
+					left_right_balance_value = left_balance_value + "/" + right_balance_value;
+
+					nativeBLEReturnFeetData(intensity_value,endurance_value,max_extension_left_value,max_flexion_left_value,max_extension_right_value,max_flexion_right_value,left_right_balance_value,split_time_value,distance_value);
 							}
 						}
-
-						lastNotificationTime = currentTime;
-
-						if (notificationCount % 10 == 0) {
-							long totalTime = currentTime - firstNotificationTime;
-							double avgInterval = notificationCount > 1 ? (double)totalTime / (notificationCount - 1) : 0;
-							android.util.Log.d("BLE_TIMING", "========================================");
-							android.util.Log.d("BLE_TIMING", String.format("SUMMARY: Total=%d | Missed=%d | Avg Interval=%.1fms",
-									notificationCount, missedNotificationCount, avgInterval));
-							android.util.Log.d("BLE_TIMING", "========================================");
-						}
 					}
-				};
+		
+		
+		
+		
+		
+        
+
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+            super.onConnectionStateChange(gatt, status, newState);
+
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                long connectTime = System.currentTimeMillis();
+                android.util.Log.d("BLE_TIMING", "=== CONNECTED at: " + connectTime + " ===");
+                android.util.Log.d("BLE", "Connected, status: " + status);
+
+                bleHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        long priorityTime = System.currentTimeMillis();
+                        boolean result = gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH);
+                        android.util.Log.d("BLE_TIMING", "Connection priority requested at: " + priorityTime + " (+" + (priorityTime - connectTime) + "ms from connect)");
+                        android.util.Log.d("BLE", "Connection priority result: " + result);
+
+                        bleHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                long discoverTime = System.currentTimeMillis();
+                                boolean success = gatt.discoverServices();
+                                android.util.Log.d("BLE_TIMING", "Service discovery started at: " + discoverTime + " (+" + (discoverTime - connectTime) + "ms from connect)");
+                                android.util.Log.d("BLE", "Discovering services: " + success);
+                            }
+                        }, 100);
+                    }
+                }, 100);
+
+            } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                android.util.Log.d("BLE_TIMING", "=== DISCONNECTED ===");
+                android.util.Log.d("BLE_TIMING", "Final Stats - Total: " + notificationCount + ", Missed: " + missedNotificationCount);
+                if (notificationCount > 1 && firstNotificationTime > 0) {
+                    long totalTime = lastNotificationTime - firstNotificationTime;
+                    double avgInterval = (double)totalTime / (notificationCount - 1);
+                    android.util.Log.d("BLE_TIMING", String.format("Average interval over session: %.2fms", avgInterval));
+                }
+            }
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            super.onServicesDiscovered(gatt, status);
+            long discoveredTime = System.currentTimeMillis();
+            android.util.Log.d("BLE_TIMING", "Services discovered callback at: " + discoveredTime);
+            android.util.Log.d("BLE", "Services discovered, status: " + status);
+
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                service = gatt.getService(MOTUS_EXPLORE_SERVICE_UUID);
+
+                if (service != null) {
+                    android.util.Log.d("BLE", "MOTUS service found");
+                    
+                    // Get all characteristics for later use
+                    characteristics = service.getCharacteristics();
+
+                    bleHandler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            long subscribeTime = System.currentTimeMillis();
+                            android.util.Log.d("BLE_TIMING", "Starting subscription at: " + subscribeTime + " (+" + (subscribeTime - discoveredTime) + "ms from discovery)");
+                            subscribeToCharacteristics(gatt);
+                        }
+                    }, 200);
+                } else {
+                    android.util.Log.e("BLE", "MOTUS service NOT found!");
+                }
+            } else {
+                android.util.Log.e("BLE", "Service discovery failed with status: " + status);
+            }
+        }
+
+        @Override
+        public void onDescriptorWrite(BluetoothGatt gatt, BluetoothGattDescriptor descriptor, int status) {
+            super.onDescriptorWrite(gatt, descriptor, status);
+            long descriptorTime = System.currentTimeMillis();
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                android.util.Log.d("BLE_TIMING", "=== NOTIFICATIONS ENABLED at: " + descriptorTime + " ===");
+                android.util.Log.d("BLE", "Notifications enabled successfully!");
+            } else {
+                android.util.Log.e("BLE_TIMING", "Failed to enable notifications at: " + descriptorTime);
+                android.util.Log.e("BLE", "Failed to enable notifications, status: " + status);
+            }
+        }
+    };
+    
+    public void disconnect() {
+		if (bluetoothGatt != null) {
+			if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+				android.util.Log.e("BLE", "Missing BLUETOOTH_CONNECT permission");
+				return;
 			}
-			
-			public static boolean isConnected(BluetoothDevice device) {
-				try {
-					Method m = device.getClass().getMethod("isConnected", (Class[]) null);
-					boolean connected = (boolean) m.invoke(device, (Object[]) null);
-					return connected;
-				} catch (Exception e) {
-					throw new IllegalStateException(e);
-				}
+			bluetoothGatt.disconnect();
+			bluetoothGatt.close();
+			bluetoothGatt = null;
+		}
+	}
+						
 			}
-			
-			void Java_SendCentre(){
-			
+						
+		void Java_SendCentre(){
+			if (bleManager != null) {
 				bleManager.sendRecentreCharacteristic();
 			}
-
-			boolean Java_ConnectToBLEService() {
-				BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-				
-				if (bluetoothAdapter == null) {
-					System.out.println("BLE: bluetoothAdapter == null");
-					return false;
-				} else if (!bluetoothAdapter.isEnabled()) {
-					System.out.println("BLE: !bluetoothAdapter.isEnabled()");
-					return false;
-				}
-				
-				Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-				System.out.println("BLE: " + pairedDevices.size() + " paired devices");
-				
-				for (BluetoothDevice device : pairedDevices) {
-					String deviceName = device.getName();
-					System.out.println("BLE: " + deviceName);
-					
-					if (deviceName != null && deviceName.startsWith("MotusVR")) {
-						System.out.println("BLE: MotusVR device found");
-						
-						if (isConnected(device)) {
-							deviceAddress = device.getAddress();
-							System.out.println("BLE: Motus Device Connected with address: " + deviceAddress);
-							
-							Activity activity = (Activity) this;
-							bleManager = new BLEManager(this, activity);
-							
-							if (bleManager.connectToDevice(deviceAddress)) {
-								System.out.println("BLE: Motus BLE Connected");
-								return true;
-							} else {
-								System.out.println("BLE: Motus BLE connection failed");
-								return false;
-							}
-						} else {
-							System.out.println("BLE: MotusVR device paired but not connected");
-						}
-					}
-				}
-				
-				System.out.println("BLE: No connected MotusVR device found");
+		}
+		
+		void Java_SendReset(){
+			if (bleManager != null) {
+				bleManager.sendResetBoardCharacteristic();
+			}
+		}
+		
+		private boolean isConnected(BluetoothDevice device) {
+			if (device == null) {
 				return false;
 			}
-   
+			BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+			if (bluetoothManager == null) {
+				return false;
+			}
+			int connectionState = bluetoothManager.getConnectionState(device, BluetoothProfile.GATT);
+			return connectionState == BluetoothProfile.STATE_CONNECTED;
+		}
+	
+    boolean Java_ConnectToBLEService() {
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        if (bluetoothAdapter == null) {
+            System.out.println("BLE: bluetoothAdapter == null");
+            return false;
+        } else if (!bluetoothAdapter.isEnabled()) {
+            System.out.println("BLE: !bluetoothAdapter.isEnabled()");
+            return false;
+        }
+        else {
+			Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+			
+            for (BluetoothDevice device : pairedDevices) {
+                String deviceName = device.getName();
+                System.out.println("BLE:" + deviceName);
+                if (deviceName != null && deviceName.startsWith("MotusVR")) {
+                    System.out.println("BLE:" + "found");
+                    if (isConnected(device)) {
+                        deviceAddress = device.getAddress();
+                        System.out.println("BLE: Motus Device Connected with address: " + deviceAddress);
+                        Activity activity = (Activity) this;
+						bleManager = new BLEManager(this, activity);
+                        if(bleManager.connectToDevice(deviceAddress)){
+                            System.out.println("BLE: Motus BLE Connected");
+                            return true;
+                        }else{
+                            System.out.println("BLE: Motus BLE NOT!");
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    
 		]]>
 		</insert>
 	</gameActivityClassAdditions>
@@ -443,14 +604,49 @@ dependencies {
 	<gameActivityOnCreateAdditions>
 		<insert>
 			<![CDATA[
-		]]>
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    boolean needsBtConnect = ActivityCompat.checkSelfPermission(GameActivity.this,
+                        android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED;
+                    boolean needsBtScan = ActivityCompat.checkSelfPermission(GameActivity.this,
+                        android.Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED;
+                    boolean needsLocation = ActivityCompat.checkSelfPermission(GameActivity.this,
+                        android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED;
+
+                    if (needsBtConnect || needsBtScan || needsLocation) {
+                        ActivityCompat.requestPermissions(GameActivity.this,
+                            new String[]{
+                                android.Manifest.permission.BLUETOOTH_CONNECT,
+                                android.Manifest.permission.BLUETOOTH_SCAN,
+                                android.Manifest.permission.ACCESS_FINE_LOCATION
+                            }, 1);
+                    }
+                } else {
+                    if (ActivityCompat.checkSelfPermission(GameActivity.this,
+                        android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(GameActivity.this,
+                            new String[]{
+                                android.Manifest.permission.ACCESS_FINE_LOCATION
+                            }, 1);
+                    }
+                }
+            }
+        }, 3000); // 3 second delay to let UE finish initialising
+        ]]>
 		</insert>
 	</gameActivityOnCreateAdditions>
 
 	<!-- optional additions to GameActivity onDestroy in GameActivity.java -->
 	<gameActivityOnDestroyAdditions>
 		<insert>
-
+			<![CDATA[
+			if (bleManager != null) {
+				bleManager.disconnect();
+				bleManager = null;
+			}
+			]]>
 		</insert>
 	</gameActivityOnDestroyAdditions>
 
@@ -465,7 +661,12 @@ dependencies {
 	<!-- optional additions to GameActivity onStop in GameActivity.java -->
 	<gameActivityOnStopAdditions>
 		<insert>
-
+			<![CDATA[
+			if (bleManager != null) {
+				bleManager.disconnect();
+				bleManager = null;
+			}
+        ]]>
 		</insert>
 	</gameActivityOnStopAdditions>
 

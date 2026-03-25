@@ -9,6 +9,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnConnectionEvent, bool, ConnectionValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeviceAddressEvent, FString, DeviceAddressValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCharacteristicsEvent, const TArray<FString>&, Characteristics);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIntensityEvent, int32, IntensityValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnduranceEvent, int32, EndruanceValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnLeftRightBalanceEvent, const TArray<int32>&, LeftRightBalanceValue);
@@ -35,6 +36,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
 	FOnDeviceAddressEvent OnDeviceAddress;
+
+	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
+	FOnCharacteristicsEvent OnCharacteristicsReceived;
 
 	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
 	FOnIntensityEvent OnIntensity;
@@ -64,6 +68,9 @@ public:
 	void BLE_DeviceAddress_TriggerEvent(FString DeviceAddressValue);
 
 	UFUNCTION(BlueprintCallable, Category = "BLE Events")
+	void BLE_Characteristics_TriggerEvent(const TArray<FString>& Characteristics);
+
+	UFUNCTION(BlueprintCallable, Category = "BLE Events")
 	void BLE_Intensity_TriggerEvent(int32 Intensity);
 
 	UFUNCTION(BlueprintCallable, Category = "BLE Events")
@@ -88,6 +95,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "BLE Events")
 	void ExploreBLE_SendRecentreFeetPosition();
 
+	UFUNCTION(BlueprintCallable, Category = "BLE Events")
+	void ExploreBLE_SendResetBoard();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -101,5 +111,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool ExploreBLE_ConnectBLE();
+
+	TMap<FString, int32> MyMap;
 
 };

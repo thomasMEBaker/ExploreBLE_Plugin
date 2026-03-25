@@ -98,6 +98,88 @@ extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeB
 #endif
 }
 
+extern "C" JNIEXPORT void JNICALL Java_com_epicgames_unreal_GameActivity_nativeBLEReturnFeetData(JNIEnv * env, jobject classObj, jstring intensity,jstring endurance,jstring extension_left_value, jstring flexion_left_value,jstring extension_right_value, jstring flexion_right_value, jstring balance_value, jstring split_time,jstring distance)
+{
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		TArray<FString> Char_Array;
+		jboolean isCopy;
+		const char* convertedIntensity = (env)->GetStringUTFChars(intensity, &isCopy);
+		const char* convertedEndurance = (env)->GetStringUTFChars(endurance, &isCopy);
+		const char* convertedExtension_left = (env)->GetStringUTFChars(extension_left_value, &isCopy);
+		const char* convertedFlexion_left = (env)->GetStringUTFChars(flexion_left_value, &isCopy);
+		const char* convertedExtension_right = (env)->GetStringUTFChars(extension_right_value, &isCopy);
+		const char* convertedFlexion_right = (env)->GetStringUTFChars(flexion_right_value, &isCopy);
+		const char* convertedBalance = (env)->GetStringUTFChars(balance_value, &isCopy);
+		const char* convertedSplitTime = (env)->GetStringUTFChars(split_time, &isCopy);
+		const char* convertedDistance = (env)->GetStringUTFChars(distance, &isCopy);
+
+
+		std::string intensity_stdStr = convertedIntensity;
+		std::string endurance_stdStr = convertedEndurance;
+		std::string extension_left_stdStr = convertedExtension_left;
+		std::string flexion_left_stdStr = convertedFlexion_left;
+		std::string extension_right_stdStr = convertedExtension_right;
+		std::string flexion_right_stdStr = convertedFlexion_right;
+		std::string left_right_balance_stdStr = convertedBalance;
+		std::string split_time_stdStr = convertedSplitTime;
+		std::string distance_stdStr = convertedDistance;
+
+
+		env->ReleaseStringUTFChars(intensity, convertedIntensity);
+		env->ReleaseStringUTFChars(endurance, convertedEndurance);
+		env->ReleaseStringUTFChars(extension_left_value, convertedExtension_left);
+		env->ReleaseStringUTFChars(flexion_left_value, convertedFlexion_left);
+		env->ReleaseStringUTFChars(extension_right_value, convertedExtension_right);
+		env->ReleaseStringUTFChars(flexion_right_value, convertedFlexion_right);
+		env->ReleaseStringUTFChars(balance_value, convertedBalance);
+		env->ReleaseStringUTFChars(split_time, convertedSplitTime);
+		env->ReleaseStringUTFChars(distance, convertedDistance);
+		
+
+		FString intensityStr = UTF8_TO_TCHAR(intensity_stdStr.c_str());
+		FString enduranceStr = UTF8_TO_TCHAR(endurance_stdStr.c_str());
+		FString extensionLeftStr = UTF8_TO_TCHAR(extension_left_stdStr.c_str());
+		FString flexionLeftStr = UTF8_TO_TCHAR(flexion_left_stdStr.c_str());
+		FString extensionRightStr = UTF8_TO_TCHAR(extension_right_stdStr.c_str());
+		FString flexionRightStr = UTF8_TO_TCHAR(flexion_right_stdStr.c_str());
+		FString leftRightBalanceStr = UTF8_TO_TCHAR(left_right_balance_stdStr.c_str());
+		FString splitTimeStr = UTF8_TO_TCHAR(split_time_stdStr.c_str());
+		FString distanceStr = UTF8_TO_TCHAR(distance_stdStr.c_str());
+
+
+		/*
+				if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, intensityStr);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, enduranceStr);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Blue, extensionLeftStr);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, flexionLeftStr);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Cyan, extensionRightStr);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Magenta, flexionRightStr);
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Orange, leftRightBalanceStr);
+		}
+		*/
+
+		Char_Array.Add(intensityStr);
+		Char_Array.Add(enduranceStr);
+		Char_Array.Add(extensionLeftStr);
+		Char_Array.Add(flexionLeftStr);
+		Char_Array.Add(extensionRightStr);
+		Char_Array.Add(flexionRightStr);
+		Char_Array.Add(leftRightBalanceStr);
+		Char_Array.Add(splitTimeStr);
+		Char_Array.Add(distanceStr);
+
+		singleton->BLE_Characteristics_TriggerEvent(Char_Array);
+
+		Char_Array.Empty();
+	}
+#endif
+}
+
+
 #endif
 
 // Sets default values
@@ -178,6 +260,19 @@ void ABLEActor::ExploreBLE_SendRecentreFeetPosition()
 }
 
 
+
+void ABLEActor::ExploreBLE_SendResetBoard()
+{
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
+	{
+		static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "Java_SendReset", "()V", false);
+		FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, Method);
+	}
+#endif
+}
+
+
 void ABLEActor::BLE_OnConnection_TriggerEvent(bool ConnectionValue) {
 	OnConnected.Broadcast(ConnectionValue);
 }
@@ -185,6 +280,25 @@ void ABLEActor::BLE_OnConnection_TriggerEvent(bool ConnectionValue) {
 
 void ABLEActor::BLE_DeviceAddress_TriggerEvent(FString DeviceAddressValue) {
 	OnDeviceAddress.Broadcast(DeviceAddressValue);
+}
+
+void ABLEActor::BLE_Characteristics_TriggerEvent(const TArray<FString>& Characteristics) {
+	OnCharacteristicsReceived.Broadcast(Characteristics);
+	
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "BLE_Characteristics_TriggerEvent");
+		for (const FString& Characteristic : Characteristics)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1, 
+				5.0f, 
+				FColor::Green,
+				Characteristic
+			);
+		}
+	}
+	
 }
 
 void ABLEActor::BLE_Intensity_TriggerEvent(int32 Intensity) {
