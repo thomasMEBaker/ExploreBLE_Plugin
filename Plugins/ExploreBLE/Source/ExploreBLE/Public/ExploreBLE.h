@@ -4,6 +4,11 @@
 
 #include "Modules/ModuleManager.h"
 
+#if PLATFORM_ANDROID
+#include "Android/AndroidJNI.h"
+#include "Android/AndroidApplication.h"
+#endif
+
 class FExploreBLEModule : public IModuleInterface
 {
 public:

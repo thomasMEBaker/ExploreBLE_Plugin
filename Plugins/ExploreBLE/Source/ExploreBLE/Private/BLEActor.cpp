@@ -211,10 +211,28 @@ void ABLEActor::Tick(float DeltaTime)
 }
 
 
+void ABLEActor::ExploreBLE_Disconnect() {
+#if PLATFORM_ANDROID
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+	{
+		jmethodID DisconnectMethod = FJavaWrapper::FindMethod(
+			Env,
+			FJavaWrapper::GameActivityClassID,
+			"Java_BLEDisconnect",
+			"()V",
+			false
+		);
+		if (DisconnectMethod != nullptr)
+		{
+			FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, DisconnectMethod);
+		}
+	}
+#endif
+}
+
 
 bool ABLEActor::ExploreBLE_ConnectBLE() {
 #if PLATFORM_ANDROID
-	if (!singleton->connectionStatus) {
 		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
 		{
 			static jmethodID Method = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "Java_ConnectToBLEService", "()Z", false);
@@ -229,7 +247,6 @@ bool ABLEActor::ExploreBLE_ConnectBLE() {
 				return false;
 			}
 		}
-}
 #endif
 	return false;
 }
@@ -328,3 +345,29 @@ void ABLEActor::BLE_RightMax_TriggerEvent(int32 RightMaxValue) {
 void ABLEActor::BLE_LeftMax_TriggerEvent(int32 LeftMaxValue) {
 	OnLeftMax.Broadcast(LeftMaxValue);
 }
+
+void ABLEActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	UE_LOG(LogTemp, Log, TEXT("BLE: EndPlay fired, reason: %d"), (int32)EndPlayReason);
+
+	#if PLATFORM_ANDROID
+		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+		{
+			jmethodID DisconnectMethod = FJavaWrapper::FindMethod(
+				Env,
+				FJavaWrapper::GameActivityClassID,
+				"Java_BLEDisconnect",
+				"()V",
+				false
+			);
+			if (DisconnectMethod != nullptr)
+			{
+				FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, DisconnectMethod);
+				UE_LOG(LogTemp, Log, TEXT("BLE: Java_BLEDisconnect called from EndPlay"));
+			}
+		}
+	#endif
+}
+
+

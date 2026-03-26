@@ -31,6 +31,8 @@ public:
 
 	bool connectionStatus;
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	UPROPERTY(BlueprintAssignable, Category = "BLE Events")
 	FOnConnectionEvent OnConnected;
 
@@ -111,6 +113,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	bool ExploreBLE_ConnectBLE();
+
+	UFUNCTION(BlueprintCallable)
+	void ExploreBLE_Disconnect();
 
 	TMap<FString, int32> MyMap;
 
