@@ -450,7 +450,7 @@ dependencies {
                         bleHandler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
-
+								nativeBLEConnected(true);
                                 long discoverTime = System.currentTimeMillis();
                                 boolean success = gatt.discoverServices();
                                 android.util.Log.d("BLE_TIMING", "Service discovery started at: " + discoverTime + " (+" + (discoverTime - connectTime) + "ms from connect)");
@@ -461,6 +461,7 @@ dependencies {
                 }, 100);
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+				nativeBLEConnected(false);
                 android.util.Log.d("BLE_TIMING", "=== DISCONNECTED ===");
                 android.util.Log.d("BLE_TIMING", "Final Stats - Total: " + notificationCount + ", Missed: " + missedNotificationCount);
 				if (notificationCount > 1 && firstNotificationTime > 0) {
